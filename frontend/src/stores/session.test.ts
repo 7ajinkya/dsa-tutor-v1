@@ -20,7 +20,7 @@ vi.mock("../api/endpoints", () => ({
 
 import { ApiClientError } from "../api/client";
 import * as endpoints from "../api/endpoints";
-import type { AnswerResponse, SessionInfo, TurnEnvelope } from "../api/types";
+import type { SessionInfo, TurnEnvelope } from "../api/types";
 
 const mockEndpoints = vi.mocked(endpoints);
 
@@ -151,7 +151,9 @@ describe("useSessionStore - lifecycle (start/resume/snapshot/stop)", () => {
     const ended = makeTurn({ type: "ended", activity: null,
       session: pausedSession,
       notice: { kind: "ended", text: "Session paused" } });
-    mockEndpoints.stopSession.mockResolvedValue({ session: pausedSession, turn: ended });
+    mockEndpoints.stopSession.mockResolvedValue({ session: pausedSession, turn: ended,
+      notice: { kind: "stopped", text: "Session paused - state persisted (learner requested "
+              + "stop)." } });
     const store = useSessionStore();
     store.session = sessionInfo;
     await store.stop();
@@ -172,7 +174,7 @@ describe("useSessionStore - theory-seen", () => {
 
 describe("useSessionStore - answer (server truth + idempotency + stale adoption)", () => {
   it("answer success replaces the turn with the server object and clears the pending key", async () => {
-    mockEndpoints.answer.mockResolvedValue({ turn: advancedTurn, session: sessionInfo, result: advancedTurn.result! });
+    mockEndpoints.answer.mockResolvedValue({ turn: advancedTurn, result: advancedTurn.result! });
     const store = useSessionStore();
     store.session = sessionInfo;
     const res = await store.submitAnswer("e001_graph_definition", "a");
@@ -187,7 +189,7 @@ describe("useSessionStore - answer (server truth + idempotency + stale adoption)
     mockEndpoints.answer
       .mockRejectedValueOnce(new ApiClientError(503, "STORAGE_UNAVAILABLE",
         "Storage is temporarily unavailable.", true))
-      .mockResolvedValueOnce({ turn: advancedTurn, session: sessionInfo, result: advancedTurn.result! });
+      .mockResolvedValueOnce({ turn: advancedTurn, result: advancedTurn.result! });
     const store = useSessionStore();
     store.session = sessionInfo;
     await expect(store.submitAnswer("e001_graph_definition", "a")).rejects.toThrow();
@@ -228,14 +230,14 @@ describe("useSessionStore - answer (server truth + idempotency + stale adoption)
     mockEndpoints.answer.mockReturnValueOnce(new Promise(() => {}));  // never resolves
     const store = useSessionStore();
     store.session = sessionInfo;
-    const first = store.submitAnswer("e001_graph_definition", "a");
+    void store.submitAnswer("e001_graph_definition", "a");
     const second = await store.submitAnswer("e001_graph_definition", "a");
     expect(second).toBeNull();                       // suppressed while in flight
     expect(mockEndpoints.answer).toHaveBeenCalledTimes(1);
   });
 
   it("never locally invents pedagogical state (raw target is the server object)", async () => {
-    mockEndpoints.answer.mockResolvedValue({ turn: advancedTurn, session: sessionInfo, result: advancedTurn.result! });
+    mockEndpoints.answer.mockResolvedValue({ turn: advancedTurn, result: advancedTurn.result! });
     const store = useSessionStore();
     store.session = sessionInfo;
     await store.submitAnswer("e001_graph_definition", "a");

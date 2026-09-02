@@ -17,55 +17,9 @@ vi.mock("../api/endpoints", () => ({
   makeIdempotencyKey: vi.fn(),
 }));
 
-import { ApiClientError } from "../api/client";
 import * as endpoints from "../api/endpoints";
-import type { AnswerResponse, SessionInfo, TurnEnvelope } from "../../api/types";
 
 const mockEndpoints = vi.mocked(endpoints);
-
-const sessionInfo: SessionInfo = {
-  id: 1, status: "active", pace: "normal", budget_minutes: 25,
-  remaining_minutes: 24.99, started_at: "2026-09-03T00:00:00+00:00", ended_at: null,
-  end_reason_code: null, end_reason_detail: null,
-  daily: { target_units: 4, completed_units: 0, status: "active" },
-};
-
-function makeTurn(overrides: Partial<TurnEnvelope> = {}): TurnEnvelope {
-  return {
-    type: "activity",
-    session: sessionInfo,
-    step: { action: "advance", why: ["skill 'graph_definition' not yet mastered"], sequence: "planned" },
-    notice: null,
-    activity: {
-      id: "e001_graph_definition", type: "mcq", mode: "teach",
-      purpose: "Study on 'What is a graph?'", prompt: "Which statement best describes a graph?",
-      answer_format: "letter", position: { index: 1, of: 2 },
-      unit: { id: "u001_graph_definition", title: "What is a graph?", goal: "Understand what is a graph?" },
-      skill: { id: "graph_definition", title: "What is a graph?" },
-      choices: [{ id: "a", text: "A set of vertices connected by edges" }], code: null,
-      starter: null, function_name: null, nodes: null, kind: null, generated: false,
-      hints: { allowed: true, max_level: 4 },
-      available_actions: ["answer", "hint", "explain", "progress", "solution", "stop"],
-    },
-    theory: null, result: null, hint: null, ...overrides,
-  };
-}
-
-const theoryTurn = makeTurn({
-  type: "theory", activity: null,
-  theory: {
-    unit: { id: "u001_graph_definition", title: "What is a graph?", goal: "Understand what is a graph?" },
-    text: "A graph is vertices connected by edges...", checks_upcoming: 2,
-  },
-});
-
-const advancedTurn = makeTurn({
-  activity: { ...makeTurn().activity!, id: "e002_vertices_edges", skill: { id: "vertices_edges", title: "Vertices and edges" } },
-  result: {
-    correct: true, score: 1.0, feedback: "Correct.", confidence_signal: "calibrated",
-    misconception: null, answered_by: "engine-deterministic", assisted: false, duplicate: false,
-  },
-});
 
 beforeEach(() => {
   vi.clearAllMocks();

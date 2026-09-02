@@ -18,7 +18,7 @@ import { defineStore } from "pinia";
 import { ApiClientError } from "../api/client";
 import * as api from "../api/endpoints";
 import type {
-  PlanPreview, Result, SessionInfo, TurnEnvelope,
+  AnswerResponse, PlanPreview, Result, SessionInfo, TurnEnvelope,
 } from "../api/types";
 import { useUiStore } from "./ui";
 
@@ -204,7 +204,8 @@ export const useSessionStore = defineStore("session", () => {
 
   // -------------------------------------------------------------- hint / reveal / explain
   async function requestHint(): Promise<void> {
-    if (inFlight.value || session.value === null || turn.value?.activity === null) return;
+    if (inFlight.value || session.value === null || turn.value === null
+        || turn.value.activity === null) return;
     inFlight.value = true;
     status.value = "loading";
     error.value = null;
@@ -222,7 +223,8 @@ export const useSessionStore = defineStore("session", () => {
   }
 
   async function revealSolution(): Promise<void> {
-    if (inFlight.value || session.value === null || turn.value?.activity === null) return;
+    if (inFlight.value || session.value === null || turn.value === null
+        || turn.value.activity === null) return;
     inFlight.value = true;
     status.value = "loading";
     error.value = null;
@@ -241,7 +243,8 @@ export const useSessionStore = defineStore("session", () => {
   }
 
   async function explainCurrent(): Promise<void> {
-    if (inFlight.value || session.value === null || turn.value?.activity === null) return;
+    if (inFlight.value || session.value === null || turn.value === null
+        || turn.value.activity === null) return;
     inFlight.value = true;
     status.value = "loading";
     error.value = null;
