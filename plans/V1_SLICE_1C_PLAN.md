@@ -37,6 +37,11 @@ IN: Vue 3 SPA design (structure, routes, state, typed API client, per-type rende
 step.why, sequences, progress/home, hints/reveal/explain, stale recovery, states, resume, responsive,
 testing strategy) — all based on the live 1B API (audit + capture).
 
+**Rendering invariant (review v1.2):** the frontend may render and style the server-provided
+`mode`/`purpose` fields, but must **never infer diagnostic or instructional intent from the activity
+type** and must **never hardcode a pedagogical sequence** (theory→mcq→problem or otherwise) — the
+engine-provided `step`/`mode`/`purpose` data is the only source of progression meaning.
+
 OUT (this plan produces design only): no Vue code/scaffolding/deps; no 1B API changes (discrepancies go
 to the audit log); no hosting/CI-CD decisions (later slice); no new interaction types (future work);
 no auth (1B contract has none).
@@ -235,7 +240,7 @@ interface ErrorEnvelope { error: { code: ErrorCode; message: string; retryable: 
                                    resume?: string; session_id?: number } }
 ```
 
-Endpoint functions (1:1 with 1B routes): `startSession(pace)`, `getSessionSnapshot(id)`,
+Endpoint functions — the client consumes **all 12 endpoints** 1:1 with the 1B routes: `startSession(pace)`, `getSessionSnapshot(id)`,
 `resumeSession(id)`, `stopSession(id, reason?)`, `theorySeen(id)`,
 `answer(id, activityId, answer, idempotencyKey)`, `hint(id, activityId)`,
 `revealSolution(id, activityId)`, `explain(id, activityId)`, `confidence(id, skillId, rating)`,
@@ -298,8 +303,11 @@ Per type (input + validation + notes):
 | theory | see §10 | | |
 | notice/ended | banner/summary (see §5.6/5.4) | | |
 
-Unknown future type (defensive): fallback card showing `purpose` + raw prompt + free-text answer with a
-"report unsupported activity" note (risk R2) — never a crash.
+Unknown future type (defensive handling only — review v1.2): a deliberately minimal fallback card —
+`purpose` + raw prompt + a plain free-text answer input, plus a small "report unsupported activity"
+note (risk R2). This is defensive containment, **not a feature**: no dedicated screens, flows, or
+special interactions are designed for unknown types; if a real unknown type ever ships in the API,
+it gets a proper renderer via a plan revision.
 
 ## 10. Theory experience
 
@@ -323,9 +331,12 @@ Unknown future type (defensive): fallback card showing `purpose` + raw prompt + 
 | prerequisite_revisit | "Back to a foundation" badge | "Earlier idea needs one more look — why: step.why" |
 | repeat/variation | "Again"/"New variant" badge | "One more rep — why: step.why" |
 
-The `purpose` line is always rendered verbatim above the prompt; badges are visual-only (never change
-content). Both come from the server-projected `mode`/`purpose` — the frontend does not re-derive
-diagnostic vs instructional (invariant: frontend renders engine truth).
+The `purpose` line is always rendered verbatim above the prompt; badges are visual-only styling of the
+server fields. **Hard constraint (review v1.2):** the frontend renders/styles the server-provided
+`mode`/`purpose` verbatim and must **never infer diagnostic or instructional intent** from the activity
+type, the interaction format, or any client-side heuristic, and must **never hardcode a pedagogical
+sequence** (theory→mcq→problem or otherwise). If an unknown `mode` value ever appears, render a
+neutral "Activity" label and surface it in the report dialog — do not guess.
 
 ## 12. step.why presentation
 
@@ -456,13 +467,19 @@ Staged, with "done" per level:
 
 Total ≈ 10 h focused work (draft estimate; AI-executed, human-reviewed).
 
+**Execution model (review v1.2 of this plan):** implementation proceeds as **small gated batches** —
+C1–C10 keep their numbering and content exactly as tabled above, but each batch (or tight group,
+e.g. C2+C3) ends with an explicit verification gate (its tests green + a short review checkpoint)
+**before the next batch starts**. No batch is begun while the previous gate is open; gates are
+checkpoints, not redesign points.
+
 ## 23. Reviewer pack
 
 Approval checklist (tick to authorize Slice 1C implementation):
 
 1. Stack confirmed: Vue 3 + Vite + TypeScript + Pinia + Vue Router; no UI kit (D1/D3).
 2. Routes/paths confirmed (§4 router map) (D2).
-3. All 11 realized endpoints + turn envelope accepted as the client contract (§3/§7 + audit).
+3. All 12 endpoints the 1B API implements accepted as the client contract (§3/§7 + audit).
 4. Per-type rendering designs (§9) acceptable, including generated-remediation badge.
 5. Theory experience (§10) and read-gate acceptable.
 6. Diagnostic vs instructional treatment (§11) acceptable.
@@ -490,6 +507,7 @@ consolidated revision per review round; every revision = one commit `plans(slice
 | Version | Date | Trigger | Corrections |
 |---|---|---|---|
 | 0.1.0 | 2026-09-03 | Initial draft from the live 1B audit + capture | all sections; submitted for review |
+| 0.2.0 | 2026-09-03 | Consolidated review of v0.1.0 — ONE revision, 4 corrections (C1–C4), no implementation | C1 endpoint count 11→12 everywhere (§23 checklist, §7 intro); C2 gated-batch execution model for C1–C10 (§22); C3 render-don't-infer invariant made explicit (§2, §11); C4 unknown-type fallback framed as deliberately minimal defensive handling (§9). API contract, backend, engine, scope, and C1–C10 numbering/content unchanged. |
 
 ---
 
