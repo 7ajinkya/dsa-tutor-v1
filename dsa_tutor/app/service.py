@@ -124,7 +124,7 @@ class TutorService:
             if existing is None:
                 return TurnView(kind="info", extra={"message": "No paused or active session to resume."})
             self.session = existing
-            self.session.status = "active"
+            self.session.status = SessionStatus.ACTIVE
             self.storage.update_session(self.session)
             self._event_seq = len(self.storage.events_for_session(self.session.id))
             state = self._state()
@@ -286,7 +286,7 @@ class TutorService:
         except Exception:  # noqa: BLE001 - logging must never break the session
             pass
 
-    def submit_response(self, response: str) -> TurnView:
+    def submit_response(self, response: str, idempotency_key: str | None = None) -> TurnView:
         state = self._state()
         exercise, generated = self._resolve_exercise(state.current_exercise_id or "")
         if exercise is None:
@@ -336,7 +336,8 @@ class TutorService:
                           completed=evaluation.correct is True,
                           solution_revealed=(state.pending_action == "solution_revealed"),
                           ai_provider=evaluation.provider, ai_model=evaluation.model,
-                          prompt_version=evaluation.prompt_version)
+                          prompt_version=evaluation.prompt_version,
+                          idempotency_key=idempotency_key)
 
         # recompute assessment from the full evidence stream
         all_records = {}
@@ -646,6 +647,62 @@ class TutorService:
                 "daily": {"date": str(plan.plan_date), "target_units": plan.target_units,
                           "completed_units": plan.completed_units, "status": plan.status}}
 
+
+    # ---------------------------------------------------------- read-only snapshot (Slice 1B)
+    def session_snapshot(self) -> TurnView:
+        """Read-only snapshot of the authoritative current turn (design doc §3 #2, review R3).
+
+        Performs NO writes: no events, no state saves, no session-row updates, no daily-plan
+        creation. Used by GET /sessions/{id}; the HTTP contract requires zero writes.
+        """
+        state = self._state()
+        session = self.storage.latest_active_session(self.learner.id)
+        if session is None:
+            return TurnView(kind="info", extra={"message": "No active session."})
+        self.session = session  # in-memory context attach only; nothing persisted
+        plan = self.storage.daily_plan(self.learner.id, date.today())  # read-only: never creates
+        if state.current_exercise_id:
+            exercise, generated = self._resolve_exercise(state.current_exercise_id)
+            if exercise is not None:
+                pending = state.pending_action
+                note = None
+                if pending == "solution_revealed":
+                    action = EngineAction.REPEAT
+                    note = "solution revealed — resubmission will count as assisted"
+                else:
+                    try:
+                        action = EngineAction(pending) if pending else EngineAction.ADVANCE
+                    except ValueError:
+                        action = EngineAction.ADVANCE
+                decision = EngineDecision(action, skill_id=state.current_skill_id,
+                                          unit_id=state.current_unit_id, exercise_id=exercise.id,
+                                          why=["authoritative current turn (read-only snapshot)"]
+                                              + ([note] if note else []))
+                return self._snapshot_exercise_view(decision, exercise, generated, session, plan)
+        unit = self.curriculum.units.get(state.current_unit_id) if state.current_unit_id else None
+        if unit is not None and unit.theory and not self._unit_theory_seen(state, unit.id):
+            decision = EngineDecision(EngineAction.ADVANCE, skill_id=state.current_skill_id,
+                                      unit_id=unit.id,
+                                      why=["authoritative current turn (read-only snapshot): theory pending"])
+            return TurnView(kind="theory", decision=decision, unit=unit,
+                            remaining_minutes=self._remaining_minutes(), daily=plan)
+        decision = self.engine.select_next(self._snapshot(state))
+        if decision.action == EngineAction.END_SESSION or not decision.exercise_id:
+            return TurnView(kind="ended", decision=decision,
+                            extra={"message": "Session complete — " + decision.explanation})
+        exercise, generated = self._resolve_exercise(decision.exercise_id)
+        if exercise is None:
+            return TurnView(kind="info", extra={"message": "No presentable activity in snapshot."})
+        return self._snapshot_exercise_view(decision, exercise, generated, session, plan)
+
+    def _snapshot_exercise_view(self, decision, exercise, generated, session, plan):
+        unit = self.curriculum.units.get(exercise.unit_id)
+        unit_exercises = self.curriculum.exercises_for_unit(exercise.unit_id)
+        idx = next((i for i, e in enumerate(unit_exercises, 1) if e.id == exercise.id), None)
+        extra = {"unit_position": (idx, len(unit_exercises))} if idx else {}
+        return TurnView(kind="exercise", decision=decision, unit=unit, exercise=exercise,
+                        generated=generated, remaining_minutes=self._remaining_minutes(),
+                        daily=plan, confidence_request=None, extra=extra)
 
     # ------------------------------------------------------------ session export (AutoClaw coaching loop)
     def export_last_session(self, out_dir="exports") -> str:

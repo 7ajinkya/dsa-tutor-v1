@@ -19,6 +19,7 @@ EXPECTED_COLUMNS: dict[tuple[str, str], str] = {
     ("exercises", "scope"): "ALTER TABLE exercises ADD COLUMN scope VARCHAR(12) NOT NULL DEFAULT 'micro'",
     ("exercises", "required_capabilities"): "ALTER TABLE exercises ADD COLUMN required_capabilities JSON NULL",
     ("attempts", "max_assistance_level"): "ALTER TABLE attempts ADD COLUMN max_assistance_level INT NOT NULL DEFAULT 0",
+    ("attempts", "idempotency_key"): "ALTER TABLE attempts ADD COLUMN idempotency_key VARCHAR(64) NULL",
     ("assessment_evidence", "evidence_type"): "ALTER TABLE assessment_evidence ADD COLUMN evidence_type VARCHAR(24) NOT NULL DEFAULT 'RECOGNITION'",
     ("assessment_evidence", "assistance_level"): "ALTER TABLE assessment_evidence ADD COLUMN assistance_level INT NOT NULL DEFAULT 0",
     ("skills", "module"): "ALTER TABLE skills ADD COLUMN module VARCHAR(80) NULL",
@@ -36,6 +37,10 @@ EXPECTED_INDEXES: list[tuple[str, str, str]] = [
     ("attempts", "idx_attempts_session", "(session_id)"),
     ("attempts", "idx_attempts_skill", "(learner_id, skill_id, created_at)"),
     ("assessment_evidence", "idx_evidence_learner", "(learner_id, skill_id)"),
+]
+# (table, index_name, column definition) — created as UNIQUE INDEX (Slice 1B idempotency)
+EXPECTED_UNIQUE_INDEXES: list[tuple[str, str, str]] = [
+    ("attempts", "uq_attempts_idem", "(session_id, idempotency_key)"),
 ]
 REQUIRED_TABLES = {
     "users", "topics", "skills", "skill_prerequisites", "learning_units", "exercises",
@@ -108,6 +113,7 @@ class Database:
         self.run_schema(sql_text)
         self.ensure_columns()
         self.ensure_indexes()
+        self.ensure_unique_indexes()
         return self.schema_report()
 
     def run_schema(self, sql_text: str) -> None:
@@ -158,6 +164,21 @@ class Database:
                         (self.config.name, table, index_name))
                     if cur.fetchone()["n"] == 0:
                         cur.execute(f"CREATE INDEX {index_name} ON {table} {definition}")
+                        created.append(f"{table}.{index_name}")
+        return created
+
+    def ensure_unique_indexes(self) -> list[str]:
+        """Create any expected-but-missing UNIQUE indexes (Slice 1B idempotency)."""
+        created = []
+        with self.transaction() as conn:
+            with conn.cursor() as cur:
+                for table, index_name, definition in EXPECTED_UNIQUE_INDEXES:
+                    cur.execute(
+                        "SELECT COUNT(*) AS n FROM information_schema.statistics "
+                        "WHERE table_schema=%s AND table_name=%s AND index_name=%s",
+                        (self.config.name, table, index_name))
+                    if cur.fetchone()["n"] == 0:
+                        cur.execute(f"CREATE UNIQUE INDEX {index_name} ON {table} {definition}")
                         created.append(f"{table}.{index_name}")
         return created
 

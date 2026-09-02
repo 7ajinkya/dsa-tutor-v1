@@ -137,12 +137,14 @@ CREATE TABLE IF NOT EXISTS attempts (
     ai_provider         VARCHAR(40) NULL,
     ai_model            VARCHAR(80) NULL,
     prompt_version      VARCHAR(64) NULL,
+    idempotency_key     VARCHAR(64) NULL,
     created_at          DATETIME(6) NOT NULL,
     CONSTRAINT fk_att_sess   FOREIGN KEY (session_id) REFERENCES sessions(id),
     CONSTRAINT fk_att_ex     FOREIGN KEY (exercise_id) REFERENCES exercises(id),
     CONSTRAINT fk_att_skill  FOREIGN KEY (skill_id) REFERENCES skills(id),
     INDEX idx_attempts_session (session_id),
-    INDEX idx_attempts_skill   (learner_id, skill_id, created_at)
+    INDEX idx_attempts_skill   (learner_id, skill_id, created_at),
+    UNIQUE KEY uq_attempts_idem (session_id, idempotency_key)
 ) ENGINE=InnoDB;
 
 -- raw evidence retained so derived mastery can be recalculated (spec 05 §3)

@@ -75,6 +75,14 @@ class MemoryStorage:
     def attempts_for_learner(self, learner_id: int) -> list[Attempt]:
         return [a for a in self.attempts if a.learner_id == learner_id]
 
+    def find_attempt_by_idempotency_key(self, learner_id: int, session_id: int,
+                                        idempotency_key: str) -> Attempt | None:
+        """Slice 1B: locate a prior submission by its idempotency identity (replay source)."""
+        found = [a for a in self.attempts
+                 if a.learner_id == learner_id and a.session_id == session_id
+                 and a.idempotency_key == idempotency_key]
+        return found[-1] if found else None
+
     def save_evidence(self, records: list[EvidenceRecord], learner_id: int) -> None:
         for r in records:
             r.created_at = r.created_at or utcnow()

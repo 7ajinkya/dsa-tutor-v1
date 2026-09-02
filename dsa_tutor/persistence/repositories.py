@@ -140,13 +140,13 @@ class MySQLStorage:
                 cur.execute(
                     "INSERT INTO attempts (session_id, learner_id, exercise_id, skill_id, response, "
                     "is_correct, score, evaluation, hints_used, independent_success, completed, "
-                    "solution_revealed, ai_provider, ai_model, prompt_version, created_at) "
-                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    "solution_revealed, ai_provider, ai_model, prompt_version, idempotency_key, created_at) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                     (attempt.session_id, attempt.learner_id, attempt.exercise_id, attempt.skill_id,
                      attempt.response, attempt.is_correct, attempt.score, _json(attempt.evaluation),
                      attempt.hints_used, attempt.independent_success, attempt.completed,
                      attempt.solution_revealed, attempt.ai_provider, attempt.ai_model,
-                     attempt.prompt_version, attempt.created_at))
+                     attempt.prompt_version, attempt.idempotency_key, attempt.created_at))
                 return cur.lastrowid
 
     def attempts_for_learner(self, learner_id: int) -> list[Attempt]:
@@ -164,8 +164,32 @@ class MySQLStorage:
                 independent_success=r["independent_success"], completed=r["completed"],
                 solution_revealed=r["solution_revealed"], ai_provider=r["ai_provider"],
                 ai_model=r["ai_model"], prompt_version=r["prompt_version"],
+                idempotency_key=r.get("idempotency_key"),
                 created_at=_utc(r["created_at"])))
         return attempts
+
+    def find_attempt_by_idempotency_key(self, learner_id: int, session_id: int,
+                                        idempotency_key: str) -> Attempt | None:
+        """Slice 1B: locate a prior submission by its idempotency identity (replay source)."""
+        with self.db.transaction() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT * FROM attempts WHERE learner_id=%s AND session_id=%s "
+                    "AND idempotency_key=%s ORDER BY created_at DESC LIMIT 1",
+                    (learner_id, session_id, idempotency_key))
+                r = cur.fetchone()
+        if r is None:
+            return None
+        return Attempt(
+            id=r["id"], session_id=r["session_id"], learner_id=r["learner_id"],
+            exercise_id=r["exercise_id"], skill_id=r["skill_id"], response=r["response"],
+            is_correct=r["is_correct"], score=r["score"],
+            evaluation=json.loads(r["evaluation"]), hints_used=r["hints_used"],
+            independent_success=r["independent_success"], completed=r["completed"],
+            solution_revealed=r["solution_revealed"], ai_provider=r["ai_provider"],
+            ai_model=r["ai_model"], prompt_version=r["prompt_version"],
+            idempotency_key=r.get("idempotency_key"),
+            created_at=_utc(r["created_at"]))
 
     def save_evidence(self, records: list[EvidenceRecord], learner_id: int) -> None:
         if not records:

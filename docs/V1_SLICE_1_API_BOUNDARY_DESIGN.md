@@ -739,3 +739,7 @@ Filled at delivery; see the final report for details.
 
 Rollback: any prior version is retrievable from git history — v1.0 at `9e397f3`, v1.1 at `4366362`
 (e.g. `git checkout 4366362 -- docs/V1_SLICE_1_API_BOUNDARY_DESIGN.md`).
+**Implementation:** Slice 1B delivered — the contract above is implemented by
+`dsa_tutor/api/*` (FastAPI adapter) with the contract test matrix in
+`tests/test_api_contract.py`; verification record in `reports/SLICE1B_VERIFICATION.md`.
+Deviations from the letter of this document are listed in that record (none are contractual).

@@ -302,6 +302,7 @@ class Attempt:
     ai_provider: Optional[str] = None
     ai_model: Optional[str] = None
     prompt_version: Optional[str] = None
+    idempotency_key: Optional[str] = None   # Slice 1B: client submission identity (replay source)
     created_at: datetime = field(default_factory=utcnow)
 
 

@@ -272,7 +272,38 @@ into MySQL by `setup-db` for inspection and future DB-driven evolution.
 - Schema changes: add a numbered migration file in `dsa_tutor/persistence/` and re-run
   `setup-db` (idempotent DDL).
 
-## 11. Natural next steps (beyond V0)
+## 11. HTTP API (Slice 1B)
+
+Thin FastAPI adapter over `TutorService` implementing the frozen contract in
+`docs/V1_SLICE_1_API_BOUNDARY_DESIGN.md` (v1.2). 11 endpoints under `/api/v1`:
+
+| Method & path | Purpose |
+|---|---|
+| `POST /api/v1/sessions` | start a session (pace: slow\|normal\|fast) |
+| `GET /api/v1/sessions/{id}` | read-only snapshot (zero writes) |
+| `POST /api/v1/sessions/{id}/resume` | paused -> active; retry-safe |
+| `POST /api/v1/sessions/{id}/stop` | active -> paused; retry-safe |
+| `POST /api/v1/sessions/{id}/theory-seen` | complete the theory turn; retry-safe |
+| `POST /api/v1/sessions/{id}/activities/{activity_id}/answer` | answer; requires `Idempotency-Key` header |
+| `POST /api/v1/sessions/{id}/activities/{activity_id}/hint` | next ladder rung |
+| `POST /api/v1/sessions/{id}/activities/{activity_id}/reveal-solution` | L6 reveal |
+| `POST /api/v1/sessions/{id}/activities/{activity_id}/explain` | targeted AI explanation |
+| `POST /api/v1/sessions/{id}/confidence` | confidence rating `{skill_id, rating}` |
+| `GET /api/v1/learner/progress` | qualitative mastery report |
+| `GET /api/v1/home` | daily plan + session plan preview + resume availability |
+
+Run (MySQL, after `setup-db`): `python -m dsa_tutor.api`. Demo without MySQL:
+`python -m dsa_tutor.api --offline --port 8000`. Interactive docs: `/api/docs`.
+
+CORS: `API_CORS_ORIGINS` env var (default: `http://localhost:5173,http://127.0.0.1:5173`; no wildcard).
+Idempotency: answer requires an `Idempotency-Key` header; retries return the stored evaluation plus the
+authoritative current turn (`result.duplicate=true`). Persisted as `attempts.idempotency_key` (unique per
+session) via migration 003, applied by `setup-db`.
+Tests: `python -m pytest tests/test_api_contract.py -q` (contract matrix, 29 tests);
+full suite: `python -m pytest tests -q` (120 passed, 4 skipped).
+Verification record: `reports/SLICE1B_VERIFICATION.md`.
+
+## 12. Natural next steps (beyond V0)
 
 Spaced repetition hooks (`assessment_evidence` already timestamps outcomes) · Java
 implementation layer (skills are language-independent; exercises carry a `language`
