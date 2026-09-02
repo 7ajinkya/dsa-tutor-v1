@@ -196,3 +196,19 @@ Per instruction §6 (API layer thin, engine stays core, UI renders engine truth)
 - **Evidence index:** `reports\pytest_baseline_output.txt` · `reports\check_offline_output.txt` · `reports\offline_smoke_transcript.txt` · `reports\ai_fallback_demo.txt` · `reports\ai_fallback_demo.py` · `reports\tmp_ai_usage.json`
 
 **Awaiting approval before any V1 feature implementation (instruction §14).**
+
+---
+
+## Addendum - Slice 0 executed (2026-09-02, post-approval)
+
+The approved **Slice 0 (baseline hardening)** was executed; no V1 feature work was started.
+
+- **Git:** repo initialized in v1 only (branch `main`, `core.autocrlf=false`); baseline commit
+  `d41e64b` "v1: establish frozen V0-derived baseline" (66 files) tagged `v1-baseline`; working tree clean.
+- **Dependencies:** `requirements.txt` pinned to the verified versions (PyMySQL==1.2.0, cryptography==50.0.1,
+  python-dotenv==1.2.3, pytest==9.1.1); nothing added, nothing upgraded.
+- **Documentation:** README test counts corrected to the verified baseline (95 collected / 91 passed / 4 skipped /
+  0 failed). Dated historical attestations in REVISION_PLAN.md were intentionally left unchanged (decision logged in
+  reports/SLICE0_SESSION_LOG.md).
+- **Tests re-run after changes:** 91 passed, 4 skipped, 0 failed (reports/pytest_after_slice0.txt).
+- Risks section 10 item 2 (unpinned deps) and item 3 (no git repo) are now closed.
