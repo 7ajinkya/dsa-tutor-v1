@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Document version** | 1.0 (Slice 1A deliverable) |
+| **Document version** | 1.1 (consolidated review revision — supersedes v1.0) |
 | **Date** | 2026-09-02 |
 | **Authorized by** | Plan `plans/V1_SLICE_1A_PLAN.md` v0.2.0, tagged `plan-slice1a-v1.0.0` (commit `3fb229e`) |
 | **Scope** | Design/inspection ONLY. No HTTP implementation, no engine/domain/schema/curriculum/AI changes. |
@@ -127,7 +127,7 @@ below; the final set is the smallest coherent API for the V1 learner experience.
 | # | Proposed endpoint | Verdict | Evidence & reasoning |
 |---|---|---|---|
 | 1 | `POST /api/v1/sessions` | **KEEP** | `start_session(pace, resume=False)` (service.py:139-151). Design requirement for 1B: reject with `409 SESSION_ALREADY_ACTIVE` when an active/paused session exists — current code creates a new session unconditionally (finding F1, service.py:142); double-click would stack sessions |
-| 2 | `GET /api/v1/sessions/{session_id}` | **MODIFY** | Read-only snapshot (session meta + current turn + plan). Caveat: the only existing way to rebuild a turn is `start_session(resume=True)`, which **writes** (service.py:127-137). Slice 1B should add a small read-only service helper (additive, engine untouched); until then GET may reuse the resume path with its benign side effect documented (open question OQ-2) |
+| 2 | `GET /api/v1/sessions/{session_id}` | **MODIFY** | Read-only snapshot (session meta + current turn + plan). **Genuinely read-only (review R3):** served in Slice 1B by a new additive `TutorService.session_snapshot()` helper that assembles the turn view from persisted state + pure engine replay with **zero writes**. **Do NOT reuse `start_session(resume=True)`** — that path writes (service.py:127-137: session-row update + event). Resolves former OQ-2 |
 | 3 | `POST /api/v1/sessions/{session_id}/resume` | **KEEP** | `start_session(resume=True)` (service.py:123-137). No paused/active session -> info view (service.py:125) -> `409 NO_SESSION_TO_RESUME` |
 | 4 | `POST /api/v1/sessions/{session_id}/stop` | **KEEP** | `stop_session` (service.py:153-170). Idempotent: repeat without active session -> info (service.py:156) -> `200` with status `paused` |
 | 5 | `POST …/activities/{activity_id}/answer` | **MODIFY** | `submit_response(response)` (service.py:289-426) grades the **authoritative current** exercise (service.py:291) and takes no client exercise id. The API layer MUST compare path `activity_id` with the current exercise id and answer `409 STALE_ACTIVITY` (with the fresh activity payload) on mismatch — otherwise a stale tab silently corrupts evidence (finding F2) |
@@ -147,9 +147,10 @@ below; the final set is the smallest coherent API for the V1 learner experience.
 ## 4. Public JSON schemas
 
 Conventions: JSON only; `snake_case`; UTC ISO-8601 timestamps; ids are strings (exercise ids) or
-integers (session/learner ids); every mutation response returns the **next authoritative turn**
-(activity/theory/ended/notice) so the client never needs a follow-up GET (instruction refinement).
-Unknown fields must be ignored by clients (forward compatibility).
+integers (session/learner ids); every mutation response returns the **authoritative current turn as
+applicable** (review R8) — the next activity/theory when the engine advances, the current activity
+for hint/explain/confidence, the ended summary on session end, or a notice — so the client never
+needs a follow-up GET to stay current. Unknown fields must be ignored by clients (forward compatibility).
 
 ### 4.0 Error envelope (consistent everywhere; refined from actual exceptions in §8)
 
@@ -187,14 +188,23 @@ Error codes: `VALIDATION_ERROR` (400), `MALFORMED_JSON` (400), `INVALID_PACE` (4
 ### 4.3 POST /api/v1/sessions/{session_id}/resume
 
 - Request: `{}` (pace is kept from the paused session)
-- 200 -> turn payload; 404 `SESSION_NOT_FOUND`; 409 `NO_SESSION_TO_RESUME`
-- Idempotent: near (repeat calls re-append one `SESSION_STARTED` event — benign, documented)
+- 200 -> turn payload; 404 `SESSION_NOT_FOUND`; 409 `NO_SESSION_TO_RESUME`; 409 `SESSION_NOT_ACTIVE`
+  (target session is completed/abandoned — completed sessions never resume)
+- **Retry-safe semantics (review R4):** resume on a **paused** session performs the paused→active
+  transition exactly once (one `SESSION_STARTED` event); resume on an **already-active** session is a
+  200 idempotent no-op — the authoritative current turn is returned and **no second event and no
+  session-row write** occur. Lifecycle events fire only on real transitions (see §7.3; test row 28).
+  State-changing: only on a real transition.
 
 ### 4.4 POST /api/v1/sessions/{session_id}/stop
 
 - Request: `{"reason": "string (optional, max 200 chars)"}`
-- 200 -> `{"session": {"id", "status": "paused", "budget_minutes", "end_reason"}, "notice": {...}}`
-- 404 `SESSION_NOT_FOUND`. Idempotent: yes. State-changing: yes (pause + persist resume point)
+- 200 -> `{"session": {"id", "status", "budget_minutes", "end_reason_code", "end_reason_detail"}, "notice": {...}}`
+- 404 `SESSION_NOT_FOUND`; 409 `SESSION_NOT_ACTIVE` (target completed/abandoned)
+- **Retry-safe semantics (review R5):** stop on an **active** session performs active→paused exactly
+  once (one `SESSION_ENDED` event); stop on an **already-paused** session is a 200 idempotent no-op —
+  the paused snapshot is returned with **no second event**. Ending reasons: closed enum, §7.4.
+  State-changing: only on a real transition.
 
 ### 4.5 POST /api/v1/sessions/{session_id}/activities/{activity_id}/answer
 
@@ -204,8 +214,15 @@ Error codes: `VALIDATION_ERROR` (400), `MALFORMED_JSON` (400), `INVALID_PACE` (4
 - 200 -> next turn payload: `result` (evaluation) + next `activity`/`theory`/`ended` + `step.why`
 - 400 `MALFORMED_JSON`/`VALIDATION_ERROR`; 404 `ACTIVITY_NOT_FOUND`; **409 `STALE_ACTIVITY`** (path id
   != current exercise id — correctness requirement, finding F2); 409 `SESSION_NOT_ACTIVE`
-- Idempotent: **no** — every accepted call records one attempt (transaction, service.py:405); duplicate
-  protection is a Slice 1B decision (OQ-1). State-changing: yes (the most state-heavy mutation)
+- **Duplicate-answer strategy — RESOLVED (review R2), from pedagogical evidence semantics:** an attempt
+  is a unit of evidence and evidence must represent distinct learner performances. A **byte-identical
+  resubmission of the same answer for the same current activity** (double-click, network retry) is not
+  new evidence: the API replays the stored evaluation of the previous attempt — 200 with
+  `result.duplicate = true`, **no new attempt, no new evidence row, no state advance**. A *different*
+  answer for the same activity is a new performance → new attempt (the engine decides what follows).
+  (Cross-activity staleness is already handled by the 409 `STALE_ACTIVITY` guard.) Implementation is a
+  server-side, deterministic Slice 1B requirement; no client `Idempotency-Key` is needed for V1
+  (former OQ-1 resolved). State-changing: yes on new performances, no on replayed duplicates
 
 ### 4.6 POST …/hint
 
@@ -250,9 +267,20 @@ Error codes: `VALIDATION_ERROR` (400), `MALFORMED_JSON` (400), `INVALID_PACE` (4
 ### 4.12 POST /api/v1/sessions/{session_id}/theory-seen  (ADD)
 
 - Request: `{}` — 200 -> next turn payload (first checks of the unit, or engine-selected next step)
-- 409 `SESSION_NOT_ACTIVE`/`STALE_ACTIVITY` (only valid while the current turn is the theory of the
-  current unit); 404 `SESSION_NOT_FOUND`
-- Idempotent: no (appends `theory:{unit}` completion — repeat calls advance repeatedly). State-changing: yes
+- 404 `SESSION_NOT_FOUND`; 409 `SESSION_NOT_ACTIVE` (no active session); 409 `STALE_ACTIVITY` (the
+  current turn is not this unit's theory AND the theory is not yet marked seen — e.g., a stale client
+  calls theory-seen after the unit already advanced)
+- **Retry-safe semantics (review R1) — exact state transition:**
+  1. *theory pending, current turn is theory* → mark `theory:{unit_id}` seen (membership-checked —
+     never a duplicate list entry), emit `THEORY_VIEWED` **exactly once**, advance to the unit's first
+     unchecked exercise → 200 turn payload
+  2. *theory already seen* (retry after advancing, or double-submit) → **200 idempotent no-op**: the
+     authoritative current turn is returned; no event, no list mutation, no re-advance
+  3. *no active session* → 409
+  Retry definition: N identical calls after the first produce the same authoritative current turn,
+  exactly one `THEORY_VIEWED` event per (session, unit), and no duplicate `completed_unit_ids` entries.
+  1B implementation note: the current code appends unconditionally (service.py:231-234) — it must
+  membership-check before appending. State-changing: only on the first call
 ---
 
 ## 5. Activity response model
@@ -279,7 +307,7 @@ everything it needs from this envelope alone — no engine logic, no sequence as
                                               // increase_difficulty | end_session
       "why": ["skill 'vertices_edges' not yet mastered (required dims: knowledge)",
               "advance to 'vertices_edges' — unit 'u002_vertices_edges'"],
-      "sequence": "adaptive"                  // planned step (in session plan preview) | adaptive (engine decided)
+      "sequence": "adaptive"                  // per-transition label, recomputed every turn (see 5.4)
     },
     "notice": null,                           // {"kind": "...", "text": "..."} on notice turns / degraded AI
     "activity": {                             // present when turn.type == "activity"
@@ -300,7 +328,7 @@ everything it needs from this envelope alone — no engine logic, no sequence as
       "kind": null,                           // complexity_question: "sum" | "space"
       "generated": false,                     // AI-generated remediation item (rem_* id)
       "hints": {"allowed": true, "max_level": 4},
-      "allowed_actions": ["answer", "hint", "explain", "progress", "solution", "stop"]
+      "available_actions": ["answer", "hint", "explain", "progress", "solution", "stop"]
     },
     "theory": null,                           // theory turns: {"unit": {...}, "text": "...",
                                               //  "checks_upcoming": 2}
@@ -317,8 +345,9 @@ Rules:
 - `ended` turns carry the session summary; the only legal follow-ups are `resume` or `home`.
 - `result.answered_by`: `engine-deterministic` (MCQ/deterministic graders, provider "deterministic"),
   `ai` (external LLM), or `builtin-fallback` (hybrid degraded — replaces raw `ai_degraded` strings).
-- `allowed_actions` is derived, not authoritative: `answer` only on `activity` turns; `solution` gated
-  behind ladder exhaustion messaging (service.py:510-513); `stop`/`progress` always on active sessions.
+- `available_actions` (renamed from `allowed_actions`, review R9) is derived, not authoritative:
+  `answer` only on `activity` turns; `solution` gated behind ladder exhaustion messaging
+  (service.py:510-513); `stop`/`progress` always on active sessions.
 
 ### 5.2 Diagnostic vs instructional vs remediation (`mode`) — derived, not decided
 
@@ -349,8 +378,13 @@ Rules:
   items as a preview.
 - Every turn carries `step.sequence`: `planned` while the engine walks the preview, `adaptive` the
   moment the engine deviates (remediation, prerequisite revisit, difficulty shifts, budget stops).
-- Question counts are estimates; the API never promises a count (invariant 8; RC-7 stale-activity
+- Question counts are estimates; the API never promises a count (invariant 8; stale-activity
   semantics in §4.5).
+- **`step.sequence` is a per-transition label (review R7):** it classifies how THIS step came about —
+  `planned` while the engine walks the deterministic preview order, `adaptive` the moment it deviates
+  (remediation, prerequisite revisit, difficulty shift, budget stop). It is recomputed from the engine
+  decision on every turn, is not stored anywhere, is not sticky, and does not constrain the next step.
+  The session-level `plan_scope` describes the preview as a whole; neither value promises question counts.
 
 ---
 
@@ -442,6 +476,29 @@ POST /sessions -> active ──(stop/Ctrl+C/budget guard)──> paused ──(r
   the engine prefers short checks and stops at natural boundaries (engine `select_next` + service budget
   guard, service.py:393-403).
 - The engine decides what fits the remaining budget (invariant 3); the API never computes activities.
+
+---
+
+Lifecycle event rules (review R4/R5): `SESSION_STARTED` fires only on a real transition (new session
+or paused→active); `SESSION_ENDED` fires only on active→paused/completed. Retried resume/stop calls
+on an already-reached state are 200 no-ops with **zero** new events (see §4.3/§4.4).
+
+### 7.4 Public session ending reasons (review R6)
+
+`end_reason` in storage is free text; the public contract exposes a **closed enum** plus the detail:
+
+| `end_reason_code` | Trigger (code evidence) | Detail source |
+|---|---|---|
+| `learner_stop` | stop command / `stop_session()` default (service.py:153) | optional client reason string |
+| `interrupted` | EOF/Ctrl+C handler (interactive.py:83) | fixed text |
+| `budget_exhausted` | engine END_SESSION why: "session budget exhausted" (engine `select_next`) | engine why chain |
+| `short_window_stop` | stop at a natural boundary with minutes remaining (service.py:393-403) | engine why chain |
+| `curriculum_complete` | all V0 skills mastered (engine "all skills complete") | engine why chain |
+| `other` | anything unrecognized (fallback) | sanitized raw text |
+
+Public shape: `session.end_reason_code` (stable enum) + `session.end_reason_detail` (engine-generated
+human text, informational). Derivation is a deterministic Slice 1B mapping over the decision why chain
+— no engine change.
 
 ---
 
@@ -547,12 +604,20 @@ Slice 1B; `MockAITutor`/builtin provider remove network flakiness. Matrix (each 
 | 23 | CORS | preflight from allowed/disallowed origin | headers present/absent; no wildcard |
 | 24 | **engine authority** | any mutation | `step.why` present and identical to the engine decision the service recorded — the API never invents or filters progression (assert via storage events) |
 | 25 | secrets | any activity payload | grader-only keys absent (§2.3 map) — automated schema assertion |
+| 26 | **theory-seen retry (R1)** | theory-seen called twice; and again after advancing | first call advances with exactly one `THEORY_VIEWED` event; retries are 200 no-ops returning the authoritative current turn; no duplicate `completed_unit_ids` entries; no duplicate events |
+| 27 | **GET read-only (R3)** | GET /sessions/{id} | 200 turn envelope; assert **zero** new events, session row untouched, storage snapshot identical before/after (resume path never invoked) |
+| 28 | **resume retry (R4)** | resume paused, then resume again while active | first: paused→active + one `SESSION_STARTED`; second: 200 no-op, zero new events, no session-row write |
 
 ---
 
 ## 12. Architectural invariants
 
-1. **HTTP layer is transport only** — endpoints map 1:1 to `TutorService` methods (§1.2, §3); no business logic.
+1. **The HTTP layer is transport and projection only (rewritten — review R10).** Endpoints adapt
+   `TutorService` use cases to HTTP: some 1:1, some composed (`GET /home` composes three read-only
+   calls), one API-added convenience (`theory-seen`) backed by an existing use case, plus API-layer
+   transport preconditions (stale-activity and lifecycle checks). The earlier "1:1 mapping" claim was
+   inaccurate and is removed. The layer makes no pedagogical decisions — all learning decisions come
+   from the engine via the service.
 2. **TutorService remains the application/use-case boundary** — the adapter calls it; it never bypasses it to storage or AI.
 3. **Learning Engine remains authoritative** — progression, prerequisites, mastery/evidence, readiness, selection, remediation stay in `domain/engine.py` (§5.2 mode is rendered, not decided).
 4. **AI produces observations; it never mutates learner state** — schema-guaranteed (no state fields in AI results); low-confidence AI output is even barred from driving engine decisions (service.py:324-325).
@@ -584,8 +649,8 @@ no Spring Boot work is in scope now (instruction §13).
 
 | ID | Question | Context / recommendation |
 |---|---|---|
-| OQ-1 | Duplicate-answer protection mechanism for `POST …/answer` | Behavior verified: duplicates create additional attempts (transaction each). Options: (a) client `Idempotency-Key` header, (b) server-side last-attempt hash guard (same exercise + same response -> return existing evaluation), (c) accept duplicates in V1. Recommendation: (b) in Slice 1B — simplest, no client changes |
-| OQ-2 | `GET /sessions/{id}` snapshot helper | Current resume path writes benign events. Recommend a small read-only service helper in 1B (additive; engine untouched). Until then GET may use the resume path (documented side effect) |
+| OQ-1 | ~~Duplicate-answer protection mechanism~~ **RESOLVED (review R2, v1.1)** | Server-side guard: byte-identical resubmission of the same answer for the same current activity replays the stored evaluation (no new attempt/evidence); different answers are new performances. Slice 1B implementation requirement — see §4.5 |
+| OQ-2 | ~~`GET /sessions/{id}` snapshot helper~~ **RESOLVED (review R3, v1.1)** | GET is genuinely read-only: Slice 1B adds an additive `session_snapshot()` service helper (zero writes; engine untouched). The resume path is never reused for GET — see §3 #2, §4.2 |
 | OQ-3 | `POST /sessions` duplicate-session guard: `409` or auto-resume? | Finding F1: no guard today. Recommendation: `409 SESSION_ALREADY_ACTIVE` + `resume` link in the error envelope (explicit beats magic) |
 | OQ-4 | Final CORS origin list/ports for the Vite dev server | Proposed: localhost:5173 + 127.0.0.1:5173 |
 | OQ-5 | `export_last_session` as an HTTP download (AutoClaw coaching loop) | Filesystem write today; defer to 1B behind a safe download handler, or keep CLI-only |
@@ -611,3 +676,15 @@ Filled at delivery; see the final report for details.
 | G8 secrets scan clean | PASS | value-pattern scan: 0 secret hits (2 `sk-` regex matches were the English words "ask-once") |
 | G9 tests green + only-doc diff | PASS | `pytest tests -q`: 91 passed, 4 skipped, 0 failed (9.92s); `git diff 3fb229e` shows ONLY this document; 0 protected-path changes |
 | G10 final report delivered | PASS | chat report: file created, sources inspected, findings, unresolved questions, git status, no-behavior-change confirmation |
+
+---
+
+## Revision history
+
+| Version | Date | Trigger | Corrections |
+|---|---|---|---|
+| 1.0 | 2026-09-02 | Initial Slice 1A deliverable (gates G1–G10 pass) | — |
+| 1.1 | 2026-09-02 | Consolidated review of v1.0 — ONE revision, 11 corrections (R1–R11), no implementation | R1 theory-seen retry-safe + exact transition (§4.12); R2 duplicate-answer strategy resolved from evidence semantics (§4.5, OQ-1); R3 GET genuinely read-only, resume never reused (§3, §4.2, OQ-2); R4 resume retry semantics + no duplicate lifecycle events (§4.3, §7.3); R5 stop when already paused (§4.4); R6 public ending-reason enum (§7.4); R7 step.sequence is per-transition (§5.1, §5.4); R8 "authoritative current/next turn as applicable" phrasing (§4, §5.1); R9 allowed_actions → available_actions (§5.1); R10 invariant #1 rewritten — false 1:1 claim removed (§12); R11 tests added: theory-seen retry, GET read-only, resume retry (§11 rows 26–28). Everything else unchanged. |
+
+Rollback: v1.0 remains retrievable at commit `9e397f3`
+(`git checkout 9e397f3 -- docs/V1_SLICE_1_API_BOUNDARY_DESIGN.md`).
