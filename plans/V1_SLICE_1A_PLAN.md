@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Plan version** | 0.1.1 (dry-run revision — will be reverted) |
+| **Plan version** | 0.1.0 (draft — FOR REVIEW) |
 | **Date** | 2026-09-02 |
 | **Author** | AutoClaw |
 | **Instruction source** | User directive "Slice 1A — HTTP API Boundary Discovery & Design" (attached 2026-09-02 22:00) |
@@ -315,4 +315,3 @@ Slice 1A is done only when **all** gates pass. These are the finish-line criteri
 | Version | Date | Trigger | Sections touched | Decision |
 |---|---|---|---|---|
 | 0.1.0 | 2026-09-02 | Initial draft from instruction attachment (23 IA items traced) | all | Submitted for review |
-| 0.1.1 | 2026-09-02 | DRY-RUN: workflow validation (example revision applied then reverted) | header + change log | dry-run only |
