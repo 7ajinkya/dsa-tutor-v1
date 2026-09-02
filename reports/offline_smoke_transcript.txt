@@ -1,0 +1,58 @@
+﻿
+=== DSA Tutor V0 ΓÇö Graphs, BFS, DFS (adaptive, local) ===
+commands during an exercise:  hint | why | explain | progress | solution | stop
+answers: type your answer (MCQ: letter a/b/c/d; code: finish with a line 'END')
+
+Daily target: 0/4 units | ~25 min budget
+
+=== SESSION PLAN (~25 min left of 25 min budget) ===
+  1. study + What is a graph? ΓÇö study (2 questions)
+  2. study + Vertices and edges ΓÇö study (2 questions)
+  3. study + Directed vs undirected graphs ΓÇö study (2 questions)
+  4. study + Weighted vs unweighted graphs ΓÇö study (2 questions)
+Total: 4 study section(s), 8 question(s) across 4 unit(s)
+Overall progress: 0/38 skills mastered
+(Questions come AFTER each study section ΓÇö theory first, always.)
+
+=== STUDY: What is a graph? ΓÇö study ===
+
+A graph is a way to represent things and the relationships between them. The 'things' are called vertices (or nodes) and the relationships are called edges. Graphs are everywhere: friend networks, road maps, the web, prerequisites between courses. Unlike a list, a graph does not impose a single line of order ΓÇö any vertex may connect to any other.
+
+Example: A metro map: stations are vertices, the tracks between them are edges. The map answers 'what connects to what?' ΓÇö not 'what comes first?', which is why it is not a list.
+
+Watch out: Not everything is a graph ΓÇö a sorted shopping list has no relationships, so 'graph' would add nothing.
+
+[Enter] when you have read this ΓÇö then 2 quick checks on it...
+--- graph_definition :: mcq ΓÇö exercise 1 of 2 in this unit ---
+(theory viewed -> start checks)
+
+Which statement best describes a graph?
+  [a] A set of vertices connected by edges that represent relationships
+  [b] A linear sequence of elements with one fixed order
+  [c] A table of numbers with rows and columns only
+  [d] A tree where every node has exactly one parent
+Your answer (a/b/c/d): 
+[correct ┬╖ score 1.00]
+Correct. A graph is vertices plus edges capturing arbitrary relationships ΓÇö no fixed order, not necessarily a tree.
+
+--- vertices_edges :: mcq ΓÇö exercise 1 of 2 in this unit ---
+(advance to 'vertices_edges' ΓÇö unit 'u002_vertices_edges')
+
+In a social network, people are friendships are edges. Which mapping is right?
+  [a] People are vertices; friendships are edges
+  [b] People are edges; friendships are vertices
+  [c] Both are vertices
+  [d] Both are edges
+Your answer (a/b/c/d): 
+[correct ┬╖ score 1.00]
+Correct. Entities are vertices; the relationships between them are edges.
+
+--- adjacency :: mcq ΓÇö exercise 1 of 1 in this unit ---
+(advance to 'adjacency' ΓÇö unit 'u037_adjacency')
+
+Two vertices are adjacent when...
+  [a] An edge connects them directly
+  [b] They have the same degree
+  [c] A path exists between them
+  [d] They are both in the same component
+Your answer (a/b/c/d): Session paused ΓÇö state persisted (learner requested stop).
