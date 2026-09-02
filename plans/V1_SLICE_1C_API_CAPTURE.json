@@ -1,0 +1,2542 @@
+{
+ "captured_at": "2026-09-03",
+ "server": "python -m dsa_tutor.api --offline (MemoryStorage + builtin AI), repo commit 4c0da98",
+ "base_url": "http://127.0.0.1:8767/api/v1",
+ "entry_count": 28,
+ "entries": [
+  {
+   "label": "01_start_201",
+   "method": "POST",
+   "path": "/api/v1/sessions",
+   "status": 201,
+   "request": {
+    "pace": "normal"
+   },
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "turn": {
+     "type": "theory",
+     "session": {
+      "id": 1,
+      "status": "active",
+      "pace": "normal",
+      "budget_minutes": 25,
+      "remaining_minutes": 25.0,
+      "started_at": "2026-09-02T19:44:24.262757+00:00",
+      "ended_at": null,
+      "end_reason_code": null,
+      "end_reason_detail": null,
+      "daily": {
+       "target_units": 4,
+       "completed_units": 0,
+       "status": "active"
+      }
+     },
+     "step": {
+      "action": "advance",
+      "why": [
+       "skill 'graph_definition' not yet mastered (required dims: knowledge)",
+       "selected unit 'u001_graph_definition' (teach) of skill 'graph_definition'"
+      ],
+      "sequence": "planned"
+     },
+     "notice": null,
+     "activity": null,
+     "theory": {
+      "unit": {
+       "id": "u001_graph_definition",
+       "title": "What is a graph? — study",
+       "goal": "Understand what is a graph?"
+      },
+      "text": "A graph is a way to represent things and the relationships between them. The 'things' are called vertices (or nodes) and the relationships are called edges. Graphs are everywhere: friend networks, road maps, the web, prerequisites between courses. Unlike a list, a graph does not impose a single line of order — any vertex may connect to any other.\n\nExample: A metro map: stations are vertices, the tracks between them are edges. The map answers 'what connects to what?' — not 'what comes first?', which is why it is not a list.\n\nWatch out: Not everything is a graph — a sorted shopping list has no relationships, so 'graph' would add nothing.",
+      "checks_upcoming": 2
+     },
+     "result": null,
+     "hint": null
+    },
+    "session": {
+     "id": 1,
+     "status": "active",
+     "pace": "normal",
+     "budget_minutes": 25,
+     "remaining_minutes": 25.0,
+     "started_at": "2026-09-02T19:44:24.262757+00:00",
+     "ended_at": null,
+     "end_reason_code": null,
+     "end_reason_detail": null,
+     "daily": {
+      "target_units": 4,
+      "completed_units": 0,
+      "status": "active"
+     }
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "1642",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "02_theory_seen_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/theory-seen",
+   "status": 200,
+   "request": {},
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "turn": {
+     "type": "activity",
+     "session": {
+      "id": 1,
+      "status": "active",
+      "pace": "normal",
+      "budget_minutes": 25,
+      "remaining_minutes": 24.999760283333334,
+      "started_at": "2026-09-02T19:44:24.262757+00:00",
+      "ended_at": null,
+      "end_reason_code": null,
+      "end_reason_detail": null,
+      "daily": {
+       "target_units": 4,
+       "completed_units": 0,
+       "status": "active"
+      }
+     },
+     "step": {
+      "action": "advance",
+      "why": [
+       "theory viewed -> start checks"
+      ],
+      "sequence": "planned"
+     },
+     "notice": null,
+     "activity": {
+      "id": "e001_graph_definition",
+      "type": "mcq",
+      "mode": "teach",
+      "purpose": "Study on 'What is a graph?'",
+      "prompt": "Which statement best describes a graph?",
+      "answer_format": "letter",
+      "position": {
+       "index": 1,
+       "of": 2
+      },
+      "unit": {
+       "id": "u001_graph_definition",
+       "title": "What is a graph? — study",
+       "goal": "Understand what is a graph?"
+      },
+      "skill": {
+       "id": "graph_definition",
+       "title": "What is a graph?"
+      },
+      "choices": [
+       {
+        "id": "a",
+        "text": "A set of vertices connected by edges that represent relationships"
+       },
+       {
+        "id": "b",
+        "text": "A linear sequence of elements with one fixed order"
+       },
+       {
+        "id": "c",
+        "text": "A table of numbers with rows and columns only"
+       },
+       {
+        "id": "d",
+        "text": "A tree where every node has exactly one parent"
+       }
+      ],
+      "code": null,
+      "starter": null,
+      "function_name": null,
+      "nodes": null,
+      "kind": null,
+      "generated": false,
+      "hints": {
+       "allowed": true,
+       "max_level": 4
+      },
+      "available_actions": [
+       "answer",
+       "hint",
+       "explain",
+       "progress",
+       "solution",
+       "stop"
+      ]
+     },
+     "theory": null,
+     "result": null,
+     "hint": null
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "1358",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "03_answer_correct_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/activities/e001_graph_definition/answer",
+   "status": 200,
+   "request": {
+    "answer": "a"
+   },
+   "request_headers": {
+    "Idempotency-Key": "cap-K1",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "turn": {
+     "type": "activity",
+     "session": {
+      "id": 1,
+      "status": "active",
+      "pace": "normal",
+      "budget_minutes": 25,
+      "remaining_minutes": 24.9994915,
+      "started_at": "2026-09-02T19:44:24.262757+00:00",
+      "ended_at": null,
+      "end_reason_code": null,
+      "end_reason_detail": null,
+      "daily": {
+       "target_units": 4,
+       "completed_units": 0,
+       "status": "active"
+      }
+     },
+     "step": {
+      "action": "advance",
+      "why": [
+       "correct attempt (score 1.00, hints 0, independent=true)",
+       "evidence state of 'graph_definition': PROFICIENT",
+       "skill 'graph_definition' mastered on all required dimensions",
+       "advance to 'vertices_edges' — unit 'u002_vertices_edges'"
+      ],
+      "sequence": "planned"
+     },
+     "notice": null,
+     "activity": {
+      "id": "e002_vertices_edges",
+      "type": "mcq",
+      "mode": "teach",
+      "purpose": "Study on 'Vertices and edges'",
+      "prompt": "In a social network, people are friendships are edges. Which mapping is right?",
+      "answer_format": "letter",
+      "position": {
+       "index": 1,
+       "of": 2
+      },
+      "unit": {
+       "id": "u002_vertices_edges",
+       "title": "Vertices and edges — study",
+       "goal": "Understand vertices and edges"
+      },
+      "skill": {
+       "id": "vertices_edges",
+       "title": "Vertices and edges"
+      },
+      "choices": [
+       {
+        "id": "a",
+        "text": "People are vertices; friendships are edges"
+       },
+       {
+        "id": "b",
+        "text": "People are edges; friendships are vertices"
+       },
+       {
+        "id": "c",
+        "text": "Both are vertices"
+       },
+       {
+        "id": "d",
+        "text": "Both are edges"
+       }
+      ],
+      "code": null,
+      "starter": null,
+      "function_name": null,
+      "nodes": null,
+      "kind": null,
+      "generated": false,
+      "hints": {
+       "allowed": true,
+       "max_level": 4
+      },
+      "available_actions": [
+       "answer",
+       "hint",
+       "explain",
+       "progress",
+       "solution",
+       "stop"
+      ]
+     },
+     "theory": null,
+     "result": {
+      "correct": true,
+      "score": 1.0,
+      "feedback": "Correct. A graph is vertices plus edges capturing arbitrary relationships — no fixed order, not necessarily a tree.",
+      "confidence_signal": null,
+      "misconception": null,
+      "answered_by": "engine-deterministic",
+      "assisted": false,
+      "duplicate": false
+     },
+     "hint": null
+    },
+    "result": {
+     "correct": true,
+     "score": 1.0,
+     "feedback": "Correct. A graph is vertices plus edges capturing arbitrary relationships — no fixed order, not necessarily a tree.",
+     "confidence_signal": null,
+     "misconception": null,
+     "answered_by": "engine-deterministic",
+     "assisted": false,
+     "duplicate": false
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "2061",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "04_answer_replay_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/activities/e001_graph_definition/answer",
+   "status": 200,
+   "request": {
+    "answer": "a"
+   },
+   "request_headers": {
+    "Idempotency-Key": "cap-K1",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "turn": {
+     "type": "activity",
+     "session": {
+      "id": 1,
+      "status": "active",
+      "pace": "normal",
+      "budget_minutes": 25,
+      "remaining_minutes": 24.999260116666665,
+      "started_at": "2026-09-02T19:44:24.262757+00:00",
+      "ended_at": null,
+      "end_reason_code": null,
+      "end_reason_detail": null,
+      "daily": {
+       "target_units": 4,
+       "completed_units": 0,
+       "status": "active"
+      }
+     },
+     "step": {
+      "action": "advance",
+      "why": [
+       "authoritative current turn (read-only snapshot)"
+      ],
+      "sequence": "planned"
+     },
+     "notice": null,
+     "activity": {
+      "id": "e002_vertices_edges",
+      "type": "mcq",
+      "mode": "teach",
+      "purpose": "Study on 'Vertices and edges'",
+      "prompt": "In a social network, people are friendships are edges. Which mapping is right?",
+      "answer_format": "letter",
+      "position": {
+       "index": 1,
+       "of": 2
+      },
+      "unit": {
+       "id": "u002_vertices_edges",
+       "title": "Vertices and edges — study",
+       "goal": "Understand vertices and edges"
+      },
+      "skill": {
+       "id": "vertices_edges",
+       "title": "Vertices and edges"
+      },
+      "choices": [
+       {
+        "id": "a",
+        "text": "People are vertices; friendships are edges"
+       },
+       {
+        "id": "b",
+        "text": "People are edges; friendships are vertices"
+       },
+       {
+        "id": "c",
+        "text": "Both are vertices"
+       },
+       {
+        "id": "d",
+        "text": "Both are edges"
+       }
+      ],
+      "code": null,
+      "starter": null,
+      "function_name": null,
+      "nodes": null,
+      "kind": null,
+      "generated": false,
+      "hints": {
+       "allowed": true,
+       "max_level": 4
+      },
+      "available_actions": [
+       "answer",
+       "hint",
+       "explain",
+       "progress",
+       "solution",
+       "stop"
+      ]
+     },
+     "theory": null,
+     "result": null,
+     "hint": null
+    },
+    "result": {
+     "correct": true,
+     "score": 1.0,
+     "feedback": "Correct. A graph is vertices plus edges capturing arbitrary relationships — no fixed order, not necessarily a tree.",
+     "confidence_signal": null,
+     "misconception": null,
+     "answered_by": "engine-deterministic",
+     "assisted": false,
+     "duplicate": true
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "1612",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "05_answer_stale_409",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/activities/e001_graph_definition/answer",
+   "status": 409,
+   "request": {
+    "answer": "a"
+   },
+   "request_headers": {
+    "Idempotency-Key": "cap-K2",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "code": "STALE_ACTIVITY",
+     "message": "This activity is no longer current; the authoritative turn is included.",
+     "retryable": false,
+     "turn": {
+      "type": "activity",
+      "session": {
+       "id": 1,
+       "status": "active",
+       "pace": "normal",
+       "budget_minutes": 25,
+       "remaining_minutes": 24.99899338333333,
+       "started_at": "2026-09-02T19:44:24.262757+00:00",
+       "ended_at": null,
+       "end_reason_code": null,
+       "end_reason_detail": null,
+       "daily": {
+        "target_units": 4,
+        "completed_units": 0,
+        "status": "active"
+       }
+      },
+      "step": {
+       "action": "advance",
+       "why": [
+        "authoritative current turn (read-only snapshot)"
+       ],
+       "sequence": "planned"
+      },
+      "notice": null,
+      "activity": {
+       "id": "e002_vertices_edges",
+       "type": "mcq",
+       "mode": "teach",
+       "purpose": "Study on 'Vertices and edges'",
+       "prompt": "In a social network, people are friendships are edges. Which mapping is right?",
+       "answer_format": "letter",
+       "position": {
+        "index": 1,
+        "of": 2
+       },
+       "unit": {
+        "id": "u002_vertices_edges",
+        "title": "Vertices and edges — study",
+        "goal": "Understand vertices and edges"
+       },
+       "skill": {
+        "id": "vertices_edges",
+        "title": "Vertices and edges"
+       },
+       "choices": [
+        {
+         "id": "a",
+         "text": "People are vertices; friendships are edges"
+        },
+        {
+         "id": "b",
+         "text": "People are edges; friendships are vertices"
+        },
+        {
+         "id": "c",
+         "text": "Both are vertices"
+        },
+        {
+         "id": "d",
+         "text": "Both are edges"
+        }
+       ],
+       "code": null,
+       "starter": null,
+       "function_name": null,
+       "nodes": null,
+       "kind": null,
+       "generated": false,
+       "hints": {
+        "allowed": true,
+        "max_level": 4
+       },
+       "available_actions": [
+        "answer",
+        "hint",
+        "explain",
+        "progress",
+        "solution",
+        "stop"
+       ]
+      },
+      "theory": null,
+      "result": null,
+      "hint": null
+     }
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "1461",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "06_hint_l1_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/activities/e002_vertices_edges/hint",
+   "status": 200,
+   "request": {},
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "turn": {
+     "type": "activity",
+     "session": {
+      "id": 1,
+      "status": "active",
+      "pace": "normal",
+      "budget_minutes": 25,
+      "remaining_minutes": 24.998710016666667,
+      "started_at": "2026-09-02T19:44:24.262757+00:00",
+      "ended_at": null,
+      "end_reason_code": null,
+      "end_reason_detail": null,
+      "daily": {
+       "target_units": 4,
+       "completed_units": 0,
+       "status": "active"
+      }
+     },
+     "step": null,
+     "notice": null,
+     "activity": {
+      "id": "e002_vertices_edges",
+      "type": "mcq",
+      "mode": "teach",
+      "purpose": "Study on 'Vertices and edges'",
+      "prompt": "In a social network, people are friendships are edges. Which mapping is right?",
+      "answer_format": "letter",
+      "position": null,
+      "unit": {
+       "id": "u002_vertices_edges",
+       "title": "Vertices and edges — study",
+       "goal": "Understand vertices and edges"
+      },
+      "skill": {
+       "id": "vertices_edges",
+       "title": "Vertices and edges"
+      },
+      "choices": [
+       {
+        "id": "a",
+        "text": "People are vertices; friendships are edges"
+       },
+       {
+        "id": "b",
+        "text": "People are edges; friendships are vertices"
+       },
+       {
+        "id": "c",
+        "text": "Both are vertices"
+       },
+       {
+        "id": "d",
+        "text": "Both are edges"
+       }
+      ],
+      "code": null,
+      "starter": null,
+      "function_name": null,
+      "nodes": null,
+      "kind": null,
+      "generated": false,
+      "hints": {
+       "allowed": true,
+       "max_level": 4
+      },
+      "available_actions": [
+       "answer",
+       "hint",
+       "explain",
+       "progress",
+       "solution",
+       "stop"
+      ]
+     },
+     "theory": null,
+     "result": null,
+     "hint": {
+      "level": 1,
+      "kind": "socratic_question",
+      "text": "What is the exercise really asking you to produce, in one sentence?"
+     }
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "1328",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "07_hint_l2_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/activities/e002_vertices_edges/hint",
+   "status": 200,
+   "request": {},
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "turn": {
+     "type": "activity",
+     "session": {
+      "id": 1,
+      "status": "active",
+      "pace": "normal",
+      "budget_minutes": 25,
+      "remaining_minutes": 24.998457933333334,
+      "started_at": "2026-09-02T19:44:24.262757+00:00",
+      "ended_at": null,
+      "end_reason_code": null,
+      "end_reason_detail": null,
+      "daily": {
+       "target_units": 4,
+       "completed_units": 0,
+       "status": "active"
+      }
+     },
+     "step": null,
+     "notice": null,
+     "activity": {
+      "id": "e002_vertices_edges",
+      "type": "mcq",
+      "mode": "teach",
+      "purpose": "Study on 'Vertices and edges'",
+      "prompt": "In a social network, people are friendships are edges. Which mapping is right?",
+      "answer_format": "letter",
+      "position": null,
+      "unit": {
+       "id": "u002_vertices_edges",
+       "title": "Vertices and edges — study",
+       "goal": "Understand vertices and edges"
+      },
+      "skill": {
+       "id": "vertices_edges",
+       "title": "Vertices and edges"
+      },
+      "choices": [
+       {
+        "id": "a",
+        "text": "People are vertices; friendships are edges"
+       },
+       {
+        "id": "b",
+        "text": "People are edges; friendships are vertices"
+       },
+       {
+        "id": "c",
+        "text": "Both are vertices"
+       },
+       {
+        "id": "d",
+        "text": "Both are edges"
+       }
+      ],
+      "code": null,
+      "starter": null,
+      "function_name": null,
+      "nodes": null,
+      "kind": null,
+      "generated": false,
+      "hints": {
+       "allowed": true,
+       "max_level": 4
+      },
+      "available_actions": [
+       "answer",
+       "hint",
+       "explain",
+       "progress",
+       "solution",
+       "stop"
+      ]
+     },
+     "theory": null,
+     "result": null,
+     "hint": {
+      "level": 2,
+      "kind": "micro_question",
+      "text": "Which single part of the task are you least sure about?"
+     }
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "1313",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "08_reveal_solution_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/activities/e002_vertices_edges/reveal-solution",
+   "status": 200,
+   "request": {},
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "solution": "Reference explanation: Entities are vertices; the relationships between them are edges.",
+    "turn": {
+     "type": "activity",
+     "session": {
+      "id": 1,
+      "status": "active",
+      "pace": "normal",
+      "budget_minutes": 25,
+      "remaining_minutes": 24.9981767,
+      "started_at": "2026-09-02T19:44:24.262757+00:00",
+      "ended_at": null,
+      "end_reason_code": null,
+      "end_reason_detail": null,
+      "daily": {
+       "target_units": 4,
+       "completed_units": 0,
+       "status": "active"
+      }
+     },
+     "step": {
+      "action": "repeat",
+      "why": [
+       "authoritative current turn (read-only snapshot)",
+       "solution revealed — resubmission will count as assisted"
+      ],
+      "sequence": "adaptive"
+     },
+     "notice": null,
+     "activity": {
+      "id": "e002_vertices_edges",
+      "type": "mcq",
+      "mode": "repeat",
+      "purpose": "Repeat practice on 'Vertices and edges'",
+      "prompt": "In a social network, people are friendships are edges. Which mapping is right?",
+      "answer_format": "letter",
+      "position": {
+       "index": 1,
+       "of": 2
+      },
+      "unit": {
+       "id": "u002_vertices_edges",
+       "title": "Vertices and edges — study",
+       "goal": "Understand vertices and edges"
+      },
+      "skill": {
+       "id": "vertices_edges",
+       "title": "Vertices and edges"
+      },
+      "choices": [
+       {
+        "id": "a",
+        "text": "People are vertices; friendships are edges"
+       },
+       {
+        "id": "b",
+        "text": "People are edges; friendships are vertices"
+       },
+       {
+        "id": "c",
+        "text": "Both are vertices"
+       },
+       {
+        "id": "d",
+        "text": "Both are edges"
+       }
+      ],
+      "code": null,
+      "starter": null,
+      "function_name": null,
+      "nodes": null,
+      "kind": null,
+      "generated": false,
+      "hints": {
+       "allowed": true,
+       "max_level": 4
+      },
+      "available_actions": [
+       "answer",
+       "hint",
+       "explain",
+       "progress",
+       "solution",
+       "stop"
+      ]
+     },
+     "theory": null,
+     "result": null,
+     "hint": null
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "1490",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "09_answer_after_reveal_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/activities/e002_vertices_edges/answer",
+   "status": 200,
+   "request": {
+    "answer": "a"
+   },
+   "request_headers": {
+    "Idempotency-Key": "cap-K3",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "turn": {
+     "type": "activity",
+     "session": {
+      "id": 1,
+      "status": "active",
+      "pace": "normal",
+      "budget_minutes": 25,
+      "remaining_minutes": 24.99793641666667,
+      "started_at": "2026-09-02T19:44:24.262757+00:00",
+      "ended_at": null,
+      "end_reason_code": null,
+      "end_reason_detail": null,
+      "daily": {
+       "target_units": 4,
+       "completed_units": 0,
+       "status": "active"
+      }
+     },
+     "step": {
+      "action": "variation",
+      "why": [
+       "correct attempt (score 1.00, hints 2, independent=false)",
+       "assisted success is learning evidence but not independent mastery -> vary the task",
+       "next exercise: 'e065_vertices_edges' (mcq)"
+      ],
+      "sequence": "adaptive"
+     },
+     "notice": null,
+     "activity": {
+      "id": "e065_vertices_edges",
+      "type": "mcq",
+      "mode": "variation",
+      "purpose": "Variation practice on 'Vertices and edges'",
+      "prompt": "In a course-prerequisite diagram (CS101 requires CS100), what are the vertices and edges?",
+      "answer_format": "letter",
+      "position": {
+       "index": 2,
+       "of": 2
+      },
+      "unit": {
+       "id": "u002_vertices_edges",
+       "title": "Vertices and edges — study",
+       "goal": "Understand vertices and edges"
+      },
+      "skill": {
+       "id": "vertices_edges",
+       "title": "Vertices and edges"
+      },
+      "choices": [
+       {
+        "id": "a",
+        "text": "Vertices = courses; edges = prerequisite relations between them"
+       },
+       {
+        "id": "b",
+        "text": "Vertices = prerequisites; edges = courses"
+       },
+       {
+        "id": "c",
+        "text": "Vertices = students; edges = grades"
+       },
+       {
+        "id": "d",
+        "text": "Vertices = semesters; edges = credits"
+       }
+      ],
+      "code": null,
+      "starter": null,
+      "function_name": null,
+      "nodes": null,
+      "kind": null,
+      "generated": false,
+      "hints": {
+       "allowed": true,
+       "max_level": 4
+      },
+      "available_actions": [
+       "answer",
+       "hint",
+       "explain",
+       "progress",
+       "solution",
+       "stop"
+      ]
+     },
+     "theory": null,
+     "result": {
+      "correct": true,
+      "score": 1.0,
+      "feedback": "Correct. Entities are vertices; the relationships between them are edges.",
+      "confidence_signal": null,
+      "misconception": null,
+      "answered_by": "engine-deterministic",
+      "assisted": true,
+      "duplicate": false
+     },
+     "hint": null
+    },
+    "result": {
+     "correct": true,
+     "score": 1.0,
+     "feedback": "Correct. Entities are vertices; the relationships between them are edges.",
+     "confidence_signal": null,
+     "misconception": null,
+     "answered_by": "engine-deterministic",
+     "assisted": true,
+     "duplicate": false
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "2026",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "10_explain_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/activities/e002_vertices_edges/explain",
+   "status": 409,
+   "request": {},
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "code": "STALE_ACTIVITY",
+     "message": "This activity is no longer current; the authoritative turn is included.",
+     "retryable": false,
+     "turn": {
+      "type": "activity",
+      "session": {
+       "id": 1,
+       "status": "active",
+       "pace": "normal",
+       "budget_minutes": 25,
+       "remaining_minutes": 24.997679,
+       "started_at": "2026-09-02T19:44:24.262757+00:00",
+       "ended_at": null,
+       "end_reason_code": null,
+       "end_reason_detail": null,
+       "daily": {
+        "target_units": 4,
+        "completed_units": 0,
+        "status": "active"
+       }
+      },
+      "step": {
+       "action": "variation",
+       "why": [
+        "authoritative current turn (read-only snapshot)"
+       ],
+       "sequence": "adaptive"
+      },
+      "notice": null,
+      "activity": {
+       "id": "e065_vertices_edges",
+       "type": "mcq",
+       "mode": "variation",
+       "purpose": "Variation practice on 'Vertices and edges'",
+       "prompt": "In a course-prerequisite diagram (CS101 requires CS100), what are the vertices and edges?",
+       "answer_format": "letter",
+       "position": {
+        "index": 2,
+        "of": 2
+       },
+       "unit": {
+        "id": "u002_vertices_edges",
+        "title": "Vertices and edges — study",
+        "goal": "Understand vertices and edges"
+       },
+       "skill": {
+        "id": "vertices_edges",
+        "title": "Vertices and edges"
+       },
+       "choices": [
+        {
+         "id": "a",
+         "text": "Vertices = courses; edges = prerequisite relations between them"
+        },
+        {
+         "id": "b",
+         "text": "Vertices = prerequisites; edges = courses"
+        },
+        {
+         "id": "c",
+         "text": "Vertices = students; edges = grades"
+        },
+        {
+         "id": "d",
+         "text": "Vertices = semesters; edges = credits"
+        }
+       ],
+       "code": null,
+       "starter": null,
+       "function_name": null,
+       "nodes": null,
+       "kind": null,
+       "generated": false,
+       "hints": {
+        "allowed": true,
+        "max_level": 4
+       },
+       "available_actions": [
+        "answer",
+        "hint",
+        "explain",
+        "progress",
+        "solution",
+        "stop"
+       ]
+      },
+      "theory": null,
+      "result": null,
+      "hint": null
+     }
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "1545",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "11_confidence_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/confidence",
+   "status": 200,
+   "request": {
+    "skill_id": "graph_definition",
+    "rating": 3
+   },
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "recorded": true,
+    "skill_id": "graph_definition"
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "47",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "12_progress_200",
+   "method": "GET",
+   "path": "/api/v1/learner/progress",
+   "status": 200,
+   "request": null,
+   "request_headers": {},
+   "response": {
+    "skills": [
+     {
+      "skill": "graph_definition",
+      "title": "What is a graph?",
+      "section": "Module A - Graph Mental Model",
+      "module": "Module A - Graph Mental Model",
+      "state": "PROFICIENT",
+      "evidence": 5,
+      "mastered": true,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "vertices_edges",
+      "title": "Vertices and edges",
+      "section": "Module A - Graph Mental Model",
+      "module": "Module A - Graph Mental Model",
+      "state": "DEVELOPING",
+      "evidence": 5,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "directed_vs_undirected",
+      "title": "Directed vs undirected graphs",
+      "section": "Module A - Graph Mental Model",
+      "module": "Module A - Graph Mental Model",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "weighted_vs_unweighted",
+      "title": "Weighted vs unweighted graphs",
+      "section": "Module A - Graph Mental Model",
+      "module": "Module A - Graph Mental Model",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "degree",
+      "title": "Degree of a vertex",
+      "section": "Module A - Graph Mental Model",
+      "module": "Module A - Graph Mental Model",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "path",
+      "title": "Path",
+      "section": "Module A - Graph Mental Model",
+      "module": "Module A - Graph Mental Model",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "cycle",
+      "title": "Cycle",
+      "section": "Module A - Graph Mental Model",
+      "module": "Module A - Graph Mental Model",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "connectedness",
+      "title": "Connectedness",
+      "section": "Module A - Graph Mental Model",
+      "module": "Module A - Graph Mental Model",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "adjacency",
+      "title": "Adjacency",
+      "section": "Module A - Graph Mental Model",
+      "module": "Module A - Graph Mental Model",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "edge_list",
+      "title": "Edge list",
+      "section": "Module B - Graph Representation",
+      "module": "Module B - Graph Representation",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "adjacency_matrix",
+      "title": "Adjacency matrix",
+      "section": "Module B - Graph Representation",
+      "module": "Module B - Graph Representation",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "adjacency_list",
+      "title": "Adjacency list",
+      "section": "Module B - Graph Representation",
+      "module": "Module B - Graph Representation",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "choosing_representation",
+      "title": "Choosing a representation",
+      "section": "Module B - Graph Representation",
+      "module": "Module B - Graph Representation",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "conversion_between_representations",
+      "title": "Converting between representations",
+      "section": "Module B - Graph Representation",
+      "module": "Module B - Graph Representation",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "why_traversal",
+      "title": "Why traversal?",
+      "section": "Module C - Traversal Fundamentals",
+      "module": "Module C - Traversal Fundamentals",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "traversal_state",
+      "title": "Traversal state",
+      "section": "Module C - Traversal Fundamentals",
+      "module": "Module C - Traversal Fundamentals",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "visited_state",
+      "title": "Visited state",
+      "section": "Module C - Traversal Fundamentals",
+      "module": "Module C - Traversal Fundamentals",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "traversal_order",
+      "title": "Traversal order",
+      "section": "Module C - Traversal Fundamentals",
+      "module": "Module C - Traversal Fundamentals",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "manual_tracing",
+      "title": "Manual traversal tracing",
+      "section": "Module C - Traversal Fundamentals",
+      "module": "Module C - Traversal Fundamentals",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "bfs_intuition",
+      "title": "BFS intuition",
+      "section": "Module D - BFS",
+      "module": "Module D - BFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "queue_mechanism",
+      "title": "Queue as the core mechanism",
+      "section": "Module D - BFS",
+      "module": "Module D - BFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "bfs_visited_handling",
+      "title": "BFS visited handling",
+      "section": "Module D - BFS",
+      "module": "Module D - BFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "bfs_manual_tracing",
+      "title": "Manual BFS tracing",
+      "section": "Module D - BFS",
+      "module": "Module D - BFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "bfs_implementation",
+      "title": "Plain BFS implementation",
+      "section": "Module D - BFS",
+      "module": "Module D - BFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "bfs_time_complexity",
+      "title": "BFS time complexity",
+      "section": "Module D - BFS",
+      "module": "Module D - BFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "bfs_space_complexity",
+      "title": "BFS space complexity",
+      "section": "Module D - BFS",
+      "module": "Module D - BFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "dfs_intuition",
+      "title": "DFS intuition",
+      "section": "Module E - DFS",
+      "module": "Module E - DFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "recursion_mechanism",
+      "title": "Recursion as the core mechanism",
+      "section": "Module E - DFS",
+      "module": "Module E - DFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "dfs_visited_handling",
+      "title": "DFS visited handling",
+      "section": "Module E - DFS",
+      "module": "Module E - DFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "dfs_manual_tracing",
+      "title": "Manual DFS tracing",
+      "section": "Module E - DFS",
+      "module": "Module E - DFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "dfs_implementation",
+      "title": "Plain recursive DFS implementation",
+      "section": "Module E - DFS",
+      "module": "Module E - DFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "dfs_time_complexity",
+      "title": "DFS time complexity",
+      "section": "Module E - DFS",
+      "module": "Module E - DFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "dfs_space_complexity",
+      "title": "DFS space complexity",
+      "section": "Module E - DFS",
+      "module": "Module E - DFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "explicit_stack_dfs",
+      "title": "Explicit-stack DFS",
+      "section": "Module E - DFS",
+      "module": "Module E - DFS",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": true
+     },
+     {
+      "skill": "bfs_vs_dfs",
+      "title": "BFS vs DFS",
+      "section": "Module F - Integration & Application",
+      "module": "Module F - Integration & Application",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "recognizing_traversal",
+      "title": "Recognizing traversal situations",
+      "section": "Module F - Integration & Application",
+      "module": "Module F - Integration & Application",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "traversal_application",
+      "title": "Basic traversal application",
+      "section": "Module F - Integration & Application",
+      "module": "Module F - Integration & Application",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": false,
+      "optional": false
+     },
+     {
+      "skill": "v0_readiness",
+      "title": "V0 readiness assessment",
+      "section": "Module F - Integration & Application",
+      "module": "Module F - Integration & Application",
+      "state": "NOT_SEEN",
+      "evidence": 0,
+      "mastered": false,
+      "boundary": true,
+      "optional": false
+     }
+    ],
+    "daily": {
+     "date": "2026-09-03",
+     "target_units": 4,
+     "completed_units": 0,
+     "status": "active"
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "8319",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "13_home_200",
+   "method": "GET",
+   "path": "/api/v1/home",
+   "status": 200,
+   "request": null,
+   "request_headers": {},
+   "response": {
+    "daily": {
+     "target_units": 4,
+     "completed_units": 0,
+     "status": "active"
+    },
+    "plan": {
+     "items": [
+      {
+       "skill": "vertices_edges",
+       "title": "Vertices and edges — study",
+       "type": "teach",
+       "theory": true,
+       "questions": 2
+      },
+      {
+       "skill": "directed_vs_undirected",
+       "title": "Directed vs undirected graphs — study",
+       "type": "teach",
+       "theory": true,
+       "questions": 2
+      },
+      {
+       "skill": "weighted_vs_unweighted",
+       "title": "Weighted vs unweighted graphs — study",
+       "type": "teach",
+       "theory": true,
+       "questions": 2
+      },
+      {
+       "skill": "degree",
+       "title": "Degree of a vertex — study",
+       "type": "teach",
+       "theory": true,
+       "questions": 1
+      }
+     ],
+     "questions": 7,
+     "theory_blocks": 4,
+     "units": 4,
+     "mastered": 1,
+     "total_skills": 38,
+     "pace_budget": 25,
+     "remaining_minutes": 24.997178866666665
+    },
+    "progress_summary": {
+     "mastered": 1,
+     "total_skills": 38
+    },
+    "resume": {
+     "available": true,
+     "session_id": 1,
+     "pace": "normal"
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "791",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "14_snapshot_200",
+   "method": "GET",
+   "path": "/api/v1/sessions/1",
+   "status": 200,
+   "request": null,
+   "request_headers": {},
+   "response": {
+    "session": {
+     "id": 1,
+     "status": "active",
+     "pace": "normal",
+     "budget_minutes": 25,
+     "remaining_minutes": 24.9969272,
+     "started_at": "2026-09-02T19:44:24.262757+00:00",
+     "ended_at": null,
+     "end_reason_code": null,
+     "end_reason_detail": null,
+     "daily": {
+      "target_units": 4,
+      "completed_units": 0,
+      "status": "active"
+     }
+    },
+    "turn": {
+     "type": "activity",
+     "session": {
+      "id": 1,
+      "status": "active",
+      "pace": "normal",
+      "budget_minutes": 25,
+      "remaining_minutes": 24.9969272,
+      "started_at": "2026-09-02T19:44:24.262757+00:00",
+      "ended_at": null,
+      "end_reason_code": null,
+      "end_reason_detail": null,
+      "daily": {
+       "target_units": 4,
+       "completed_units": 0,
+       "status": "active"
+      }
+     },
+     "step": {
+      "action": "variation",
+      "why": [
+       "authoritative current turn (read-only snapshot)"
+      ],
+      "sequence": "adaptive"
+     },
+     "notice": null,
+     "activity": {
+      "id": "e065_vertices_edges",
+      "type": "mcq",
+      "mode": "variation",
+      "purpose": "Variation practice on 'Vertices and edges'",
+      "prompt": "In a course-prerequisite diagram (CS101 requires CS100), what are the vertices and edges?",
+      "answer_format": "letter",
+      "position": {
+       "index": 2,
+       "of": 2
+      },
+      "unit": {
+       "id": "u002_vertices_edges",
+       "title": "Vertices and edges — study",
+       "goal": "Understand vertices and edges"
+      },
+      "skill": {
+       "id": "vertices_edges",
+       "title": "Vertices and edges"
+      },
+      "choices": [
+       {
+        "id": "a",
+        "text": "Vertices = courses; edges = prerequisite relations between them"
+       },
+       {
+        "id": "b",
+        "text": "Vertices = prerequisites; edges = courses"
+       },
+       {
+        "id": "c",
+        "text": "Vertices = students; edges = grades"
+       },
+       {
+        "id": "d",
+        "text": "Vertices = semesters; edges = credits"
+       }
+      ],
+      "code": null,
+      "starter": null,
+      "function_name": null,
+      "nodes": null,
+      "kind": null,
+      "generated": false,
+      "hints": {
+       "allowed": true,
+       "max_level": 4
+      },
+      "available_actions": [
+       "answer",
+       "hint",
+       "explain",
+       "progress",
+       "solution",
+       "stop"
+      ]
+     },
+     "theory": null,
+     "result": null,
+     "hint": null
+    },
+    "plan": {
+     "items": [
+      {
+       "skill": "vertices_edges",
+       "title": "Vertices and edges — study",
+       "type": "teach",
+       "theory": true,
+       "questions": 2
+      },
+      {
+       "skill": "directed_vs_undirected",
+       "title": "Directed vs undirected graphs — study",
+       "type": "teach",
+       "theory": true,
+       "questions": 2
+      },
+      {
+       "skill": "weighted_vs_unweighted",
+       "title": "Weighted vs unweighted graphs — study",
+       "type": "teach",
+       "theory": true,
+       "questions": 2
+      },
+      {
+       "skill": "degree",
+       "title": "Degree of a vertex — study",
+       "type": "teach",
+       "theory": true,
+       "questions": 1
+      }
+     ],
+     "questions": 7,
+     "theory_blocks": 4,
+     "units": 4,
+     "mastered": 1,
+     "total_skills": 38,
+     "pace_budget": 25,
+     "remaining_minutes": 24.9969272
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "2297",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "15_stop_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/stop",
+   "status": 200,
+   "request": {
+    "reason": "planning capture"
+   },
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "session": {
+     "id": 1,
+     "status": "paused",
+     "pace": "normal",
+     "budget_minutes": 25,
+     "remaining_minutes": null,
+     "started_at": "2026-09-02T19:44:24.262757+00:00",
+     "ended_at": "2026-09-02T19:44:24.463185+00:00",
+     "end_reason_code": "other",
+     "end_reason_detail": "planning capture",
+     "daily": null
+    },
+    "turn": {
+     "type": "ended",
+     "session": {
+      "id": 1,
+      "status": "paused",
+      "pace": "normal",
+      "budget_minutes": 25,
+      "remaining_minutes": null,
+      "started_at": "2026-09-02T19:44:24.262757+00:00",
+      "ended_at": "2026-09-02T19:44:24.463185+00:00",
+      "end_reason_code": "other",
+      "end_reason_detail": "planning capture",
+      "daily": null
+     },
+     "step": null,
+     "notice": {
+      "kind": "ended",
+      "text": "Session paused — state persisted (planning capture)."
+     },
+     "activity": null,
+     "theory": null,
+     "result": null,
+     "hint": null
+    },
+    "notice": {
+     "kind": "stopped",
+     "text": "Session paused — state persisted (planning capture)."
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "815",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "16_stop_retry_noop_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/stop",
+   "status": 200,
+   "request": {},
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "session": {
+     "id": 1,
+     "status": "paused",
+     "pace": "normal",
+     "budget_minutes": 25,
+     "remaining_minutes": null,
+     "started_at": "2026-09-02T19:44:24.262757+00:00",
+     "ended_at": "2026-09-02T19:44:24.463185+00:00",
+     "end_reason_code": "other",
+     "end_reason_detail": "planning capture",
+     "daily": null
+    },
+    "notice": {
+     "kind": "already_paused",
+     "text": "Session is already paused."
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "342",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "17_resume_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/resume",
+   "status": 200,
+   "request": {},
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "turn": {
+     "type": "activity",
+     "session": {
+      "id": 1,
+      "status": "active",
+      "pace": "normal",
+      "budget_minutes": 25,
+      "remaining_minutes": 24.9964009,
+      "started_at": "2026-09-02T19:44:24.262757+00:00",
+      "ended_at": "2026-09-02T19:44:24.463185+00:00",
+      "end_reason_code": "other",
+      "end_reason_detail": "planning capture",
+      "daily": {
+       "target_units": 4,
+       "completed_units": 0,
+       "status": "active"
+      }
+     },
+     "step": {
+      "action": "repeat",
+      "why": [
+       "resumed from persisted stopping point"
+      ],
+      "sequence": "adaptive"
+     },
+     "notice": null,
+     "activity": {
+      "id": "e065_vertices_edges",
+      "type": "mcq",
+      "mode": "repeat",
+      "purpose": "Repeat practice on 'Vertices and edges'",
+      "prompt": "In a course-prerequisite diagram (CS101 requires CS100), what are the vertices and edges?",
+      "answer_format": "letter",
+      "position": {
+       "index": 2,
+       "of": 2
+      },
+      "unit": {
+       "id": "u002_vertices_edges",
+       "title": "Vertices and edges — study",
+       "goal": "Understand vertices and edges"
+      },
+      "skill": {
+       "id": "vertices_edges",
+       "title": "Vertices and edges"
+      },
+      "choices": [
+       {
+        "id": "a",
+        "text": "Vertices = courses; edges = prerequisite relations between them"
+       },
+       {
+        "id": "b",
+        "text": "Vertices = prerequisites; edges = courses"
+       },
+       {
+        "id": "c",
+        "text": "Vertices = students; edges = grades"
+       },
+       {
+        "id": "d",
+        "text": "Vertices = semesters; edges = credits"
+       }
+      ],
+      "code": null,
+      "starter": null,
+      "function_name": null,
+      "nodes": null,
+      "kind": null,
+      "generated": false,
+      "hints": {
+       "allowed": true,
+       "max_level": 4
+      },
+      "available_actions": [
+       "answer",
+       "hint",
+       "explain",
+       "progress",
+       "solution",
+       "stop"
+      ]
+     },
+     "theory": null,
+     "result": null,
+     "hint": null
+    },
+    "session": {
+     "id": 1,
+     "status": "active",
+     "pace": "normal",
+     "budget_minutes": 25,
+     "remaining_minutes": 24.9964009,
+     "started_at": "2026-09-02T19:44:24.262757+00:00",
+     "ended_at": "2026-09-02T19:44:24.463185+00:00",
+     "end_reason_code": "other",
+     "end_reason_detail": "planning capture",
+     "daily": {
+      "target_units": 4,
+      "completed_units": 0,
+      "status": "active"
+     }
+    },
+    "resumed": true
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "1781",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "18_resume_retry_noop_200",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/resume",
+   "status": 200,
+   "request": {},
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "turn": {
+     "type": "activity",
+     "session": {
+      "id": 1,
+      "status": "active",
+      "pace": "normal",
+      "budget_minutes": 25,
+      "remaining_minutes": 24.996150816666667,
+      "started_at": "2026-09-02T19:44:24.262757+00:00",
+      "ended_at": "2026-09-02T19:44:24.463185+00:00",
+      "end_reason_code": "other",
+      "end_reason_detail": "planning capture",
+      "daily": {
+       "target_units": 4,
+       "completed_units": 0,
+       "status": "active"
+      }
+     },
+     "step": {
+      "action": "variation",
+      "why": [
+       "authoritative current turn (read-only snapshot)"
+      ],
+      "sequence": "adaptive"
+     },
+     "notice": null,
+     "activity": {
+      "id": "e065_vertices_edges",
+      "type": "mcq",
+      "mode": "variation",
+      "purpose": "Variation practice on 'Vertices and edges'",
+      "prompt": "In a course-prerequisite diagram (CS101 requires CS100), what are the vertices and edges?",
+      "answer_format": "letter",
+      "position": {
+       "index": 2,
+       "of": 2
+      },
+      "unit": {
+       "id": "u002_vertices_edges",
+       "title": "Vertices and edges — study",
+       "goal": "Understand vertices and edges"
+      },
+      "skill": {
+       "id": "vertices_edges",
+       "title": "Vertices and edges"
+      },
+      "choices": [
+       {
+        "id": "a",
+        "text": "Vertices = courses; edges = prerequisite relations between them"
+       },
+       {
+        "id": "b",
+        "text": "Vertices = prerequisites; edges = courses"
+       },
+       {
+        "id": "c",
+        "text": "Vertices = students; edges = grades"
+       },
+       {
+        "id": "d",
+        "text": "Vertices = semesters; edges = credits"
+       }
+      ],
+      "code": null,
+      "starter": null,
+      "function_name": null,
+      "nodes": null,
+      "kind": null,
+      "generated": false,
+      "hints": {
+       "allowed": true,
+       "max_level": 4
+      },
+      "available_actions": [
+       "answer",
+       "hint",
+       "explain",
+       "progress",
+       "solution",
+       "stop"
+      ]
+     },
+     "theory": null,
+     "result": null,
+     "hint": null
+    },
+    "session": {
+     "id": 1,
+     "status": "active",
+     "pace": "normal",
+     "budget_minutes": 25,
+     "remaining_minutes": 24.996150816666667,
+     "started_at": "2026-09-02T19:44:24.262757+00:00",
+     "ended_at": "2026-09-02T19:44:24.463185+00:00",
+     "end_reason_code": "other",
+     "end_reason_detail": "planning capture",
+     "daily": {
+      "target_units": 4,
+      "completed_units": 0,
+      "status": "active"
+     }
+    },
+    "resumed": false
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "1817",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "19_start_again_409",
+   "method": "POST",
+   "path": "/api/v1/sessions",
+   "status": 409,
+   "request": {
+    "pace": "fast"
+   },
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "code": "SESSION_ALREADY_ACTIVE",
+     "message": "Session 1 is active. Resume it or stop it first.",
+     "retryable": false,
+     "session_id": 1,
+     "resume": "/api/v1/sessions/1/resume"
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "174",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "20_get_unknown_404",
+   "method": "GET",
+   "path": "/api/v1/sessions/999",
+   "status": 404,
+   "request": null,
+   "request_headers": {},
+   "response": {
+    "error": {
+     "code": "SESSION_NOT_FOUND",
+     "message": "No session with id 999.",
+     "retryable": false
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "92",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "21_malformed_json_400",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/activities/e002_vertices_edges/answer",
+   "status": 400,
+   "request": "{bad json",
+   "request_headers": {
+    "Idempotency-Key": "cap-K4",
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "code": "MALFORMED_JSON",
+     "message": "Request body is not valid.",
+     "retryable": false,
+     "details": {
+      "issues": [
+       {
+        "type": "json_invalid",
+        "loc": [
+         "body",
+         "1"
+        ]
+       }
+      ]
+     }
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "158",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "22_missing_key_400",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/activities/e002_vertices_edges/answer",
+   "status": 400,
+   "request": {
+    "answer": "b"
+   },
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "code": "MISSING_IDEMPOTENCY_KEY",
+     "message": "Header 'Idempotency-Key' is required for answer submissions.",
+     "retryable": false
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "135",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "23_unknown_skill_400",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/confidence",
+   "status": 400,
+   "request": {
+    "skill_id": "no_such_skill",
+    "rating": 3
+   },
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "code": "UNKNOWN_SKILL",
+     "message": "Unknown skill 'no_such_skill'.",
+     "retryable": false
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "95",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "24_invalid_confidence_400",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/confidence",
+   "status": 400,
+   "request": {
+    "skill_id": "graph_definition",
+    "rating": 9
+   },
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "code": "INVALID_CONFIDENCE",
+     "message": "Confidence rating must be 1..5.",
+     "retryable": false
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "101",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "25_invalid_pace_400",
+   "method": "POST",
+   "path": "/api/v1/sessions",
+   "status": 400,
+   "request": {
+    "pace": "banana"
+   },
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "code": "INVALID_PACE",
+     "message": "pace must be one of slow|normal|fast, got 'banana'.",
+     "retryable": false
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "115",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "26_cors_preflight_200",
+   "method": "OPTIONS",
+   "path": "/api/v1/home",
+   "status": 200,
+   "request": null,
+   "request_headers": {
+    "Origin": "http://localhost:5173",
+    "Access-Control-Request-Method": "GET"
+   },
+   "response": "OK",
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "vary": "Origin",
+    "access-control-allow-methods": "GET, POST, OPTIONS",
+    "access-control-max-age": "600",
+    "access-control-allow-origin": "http://localhost:5173",
+    "content-length": "2",
+    "content-type": "text/plain; charset=utf-8",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "27_cors_disallowed_no_acao",
+   "method": "GET",
+   "path": "/api/v1/home",
+   "status": 200,
+   "request": null,
+   "request_headers": {
+    "Origin": "http://evil.example"
+   },
+   "response": {
+    "daily": {
+     "target_units": 4,
+     "completed_units": 0,
+     "status": "active"
+    },
+    "plan": {
+     "items": [
+      {
+       "skill": "vertices_edges",
+       "title": "Vertices and edges — study",
+       "type": "teach",
+       "theory": true,
+       "questions": 2
+      },
+      {
+       "skill": "directed_vs_undirected",
+       "title": "Directed vs undirected graphs — study",
+       "type": "teach",
+       "theory": true,
+       "questions": 2
+      },
+      {
+       "skill": "weighted_vs_unweighted",
+       "title": "Weighted vs unweighted graphs — study",
+       "type": "teach",
+       "theory": true,
+       "questions": 2
+      },
+      {
+       "skill": "degree",
+       "title": "Degree of a vertex — study",
+       "type": "teach",
+       "theory": true,
+       "questions": 1
+      }
+     ],
+     "questions": 7,
+     "theory_blocks": 4,
+     "units": 4,
+     "mastered": 1,
+     "total_skills": 38,
+     "pace_budget": 25,
+     "remaining_minutes": 24.994040833333333
+    },
+    "progress_summary": {
+     "mastered": 1,
+     "total_skills": 38
+    },
+    "resume": {
+     "available": true,
+     "session_id": 1,
+     "pace": "normal"
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "791",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  },
+  {
+   "label": "28_ladder_exhausted_409",
+   "method": "POST",
+   "path": "/api/v1/sessions/1/activities/e002_vertices_edges/hint",
+   "status": 409,
+   "request": {},
+   "request_headers": {
+    "Content-Type": "application/json"
+   },
+   "response": {
+    "error": {
+     "code": "STALE_ACTIVITY",
+     "message": "This activity is no longer current; the authoritative turn is included.",
+     "retryable": false,
+     "turn": {
+      "type": "activity",
+      "session": {
+       "id": 1,
+       "status": "active",
+       "pace": "normal",
+       "budget_minutes": 25,
+       "remaining_minutes": 24.993789633333332,
+       "started_at": "2026-09-02T19:44:24.262757+00:00",
+       "ended_at": "2026-09-02T19:44:24.463185+00:00",
+       "end_reason_code": "other",
+       "end_reason_detail": "planning capture",
+       "daily": {
+        "target_units": 4,
+        "completed_units": 0,
+        "status": "active"
+       }
+      },
+      "step": {
+       "action": "variation",
+       "why": [
+        "authoritative current turn (read-only snapshot)"
+       ],
+       "sequence": "adaptive"
+      },
+      "notice": null,
+      "activity": {
+       "id": "e065_vertices_edges",
+       "type": "mcq",
+       "mode": "variation",
+       "purpose": "Variation practice on 'Vertices and edges'",
+       "prompt": "In a course-prerequisite diagram (CS101 requires CS100), what are the vertices and edges?",
+       "answer_format": "letter",
+       "position": {
+        "index": 2,
+        "of": 2
+       },
+       "unit": {
+        "id": "u002_vertices_edges",
+        "title": "Vertices and edges — study",
+        "goal": "Understand vertices and edges"
+       },
+       "skill": {
+        "id": "vertices_edges",
+        "title": "Vertices and edges"
+       },
+       "choices": [
+        {
+         "id": "a",
+         "text": "Vertices = courses; edges = prerequisite relations between them"
+        },
+        {
+         "id": "b",
+         "text": "Vertices = prerequisites; edges = courses"
+        },
+        {
+         "id": "c",
+         "text": "Vertices = students; edges = grades"
+        },
+        {
+         "id": "d",
+         "text": "Vertices = semesters; edges = credits"
+        }
+       ],
+       "code": null,
+       "starter": null,
+       "function_name": null,
+       "nodes": null,
+       "kind": null,
+       "generated": false,
+       "hints": {
+        "allowed": true,
+        "max_level": 4
+       },
+       "available_actions": [
+        "answer",
+        "hint",
+        "explain",
+        "progress",
+        "solution",
+        "stop"
+       ]
+      },
+      "theory": null,
+      "result": null,
+      "hint": null
+     }
+    }
+   },
+   "response_headers": {
+    "date": "Wed, 02 Sep 2026 19:44:24 GMT",
+    "server": "uvicorn",
+    "content-length": "1601",
+    "content-type": "application/json",
+    "connection": "close"
+   }
+  }
+ ]
+}
