@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Plan version** | 0.1.0 (draft — FOR REVIEW) |
+| **Plan version** | 0.2.0 (consolidated review revision — supersedes v0.1.0; FOR REVIEW) |
 | **Date** | 2026-09-02 |
 | **Author** | AutoClaw |
 | **Instruction source** | User directive "Slice 1A — HTTP API Boundary Discovery & Design" (attached 2026-09-02 22:00) |
@@ -41,7 +41,7 @@ output de-risks every later part (endpoint implementation, Vue frontend).
    table; session model (persistent vs session state); error handling mapped to real exceptions;
    security/exposure boundary + local-dev CORS policy; storage selection; API test matrix; the ten
    architectural invariants; Spring-Boot migration consideration; open questions.
-3. Read-only verification runs (test suite, read-only Python introspection) used as inspection aids.
+3. Read-only verification runs (test suite, read-only Python introspection) used as inspection aids; these may create transient runtime artifacts (caches, gitignored `__pycache__`/`.pytest_cache`/`logs/`) which are neither source changes nor deliverables (see §3 artifact taxonomy).
 4. A final chat report: file created, sources inspected, findings, unresolved questions, git status,
    no-behavior-change confirmation (instruction IA-23).
 
@@ -54,7 +54,7 @@ output de-risks every later part (endpoint implementation, Vue frontend).
 
 ### 2.3 The endpoint working proposal under evaluation (from the instruction)
 
-Slice 1A must evaluate and classify each of these 13 proposed endpoints (KEEP / MODIFY / REMOVE / ADD,
+Slice 1A must evaluate and classify each of these 12 proposed endpoints (KEEP / MODIFY / REMOVE / ADD,
 with code-cited reasons); the proposal is the instruction's starting point, not a commitment:
 
 ```
@@ -77,9 +77,14 @@ Decision/progress:
   GET  /api/v1/home
 ```
 
-(Traceability IA-10; design doc will classify all 13 with code evidence — gate G6. Also evaluates the
+(Traceability IA-10; design doc will classify all 12 with code evidence — gate G6. Also evaluates the
 instruction's refinement: mutation responses should return the next authoritative activity when that
 avoids round trips.)
+
+**Endpoint count is not a success metric (review amendment RC-5).** The design must stay free to KEEP / MODIFY /
+REMOVE / ADD based on actual code and frontend requirements; if an endpoint is redundant because another response
+already provides the same authoritative information, recommend removing it. Prefer the smallest coherent API that
+supports the V1 learner experience.
 
 ### 2.4 Deferred to later parts of Slice 1 (placeholders only — §13)
 
@@ -102,6 +107,12 @@ avoids round trips.)
 Technique constraint: inspection is **read-only** (reading files, running the existing test suite,
 running Python that only *reads* objects). Nothing outside `docs/` + `plans/` is written.
 
+**Artifact taxonomy (review amendment RC-3).** During execution, distinguish three categories: (a) *source/repository
+changes* — tracked files; after Slice 1A these must be exactly `docs/V1_SLICE_1_API_BOUNDARY_DESIGN.md` (plus this plan
+file); (b) *task deliverables* — the design document itself; (c) *transient test/runtime artifacts* — caches,
+`__pycache__`, `.pytest_cache`, `logs/`, and any gitignored files created by running tests or introspection. Category (c)
+may appear during execution, is NOT an application change, and must not trigger source cleanup or refactoring.
+
 ## 4. Task breakdown & milestones
 
 Effort = focused work hours (draft estimates for reviewer validation; AI-executed, human-reviewed).
@@ -112,7 +123,7 @@ Effort = focused work hours (draft estimates for reviewer validation; AI-execute
 | T1 | Inspection I — full `TutorService` method inventory + runtime signature cross-check (S1, S8) | Method inventory table (raw) | T0 | 1.5 h |
 | T2 | Inspection II — TurnView field audit, engine/models/persistence/CLI/tests/AI pass, exception inventory (S2–S7) | Field/exception/session-lifecycle notes | T0 | 1.5 h |
 | T3 | Draft design doc §1–§2 (current boundary, method table; TurnView inspection + public JSON proposal) | Doc sections | T1, T2 | 1.0 h |
-| T4 | Draft §3–§4 (endpoint classification with code evidence; public schemas + error envelope) | Doc sections | T1, T2 | 1.25 h |
+| T4 | Draft §3–§4 (endpoint classification with code evidence; public schemas + error envelope; duplicate-submission/idempotency analysis RC-6; stale-activity analysis RC-7) | Doc sections | T1, T2 | 1.5 h |
 | T5 | Draft §5–§7 (activity envelope; TurnView mapping table; session model) | Doc sections | T1, T2 | 1.0 h |
 | T6 | Draft §8–§10 (error handling; security/CORS; storage) | Doc sections | T2, T4 | 0.75 h |
 | T7 | Draft §11–§13 (test matrix; invariants; migration) | Doc sections | T1–T6 | 0.5 h |
@@ -120,12 +131,12 @@ Effort = focused work hours (draft estimates for reviewer validation; AI-execute
 | T9 | Verification gates G1–G10 (§6): completeness greps, secrets scan, test suite re-run, diff-scope check | Gate results | T8 | 0.75 h |
 | T10 | Commit + push the doc; deliver final report (IA-23 items); STOP | Delivered design doc | T9 | 0.25 h |
 
-**Total draft estimate: 9.25 h** across three milestones:
+**Total draft estimate: 9.5 h** across three milestones:
 
 | Milestone | Content | Tasks | Est. |
 |---|---|---|---|
 | M1 — Inspection complete | Method/field/exception inventory verified against runtime | T0–T2 | 3.25 h |
-| M2 — Design doc drafted | All 14 sections drafted with code citations | T3–T8 | 5.0 h |
+| M2 — Design doc drafted | All 14 sections drafted with code citations | T3–T8 | 5.25 h |
 | M3 — Verified & delivered | Gates green, doc committed/pushed, report delivered | T9–T10 | 1.0 h |
 
 Timeline (indicative sequence, not calendar commitment):
@@ -169,7 +180,7 @@ design-doc section. Nothing is dropped; open questions are flagged where a revie
 | IA-08 | §1 Current boundary + method inventory (name/params/return/side effects/persistence/errors/HTTP suitability) | T1, T3 | §1 | Planned |
 | IA-09 | §2 TurnView inspection: fields/types/values/nested/present/optional/internal/safe; stable public JSON, no blind serialization | T2, T3 (gate G5) | §2, §6 | Planned |
 | IA-10 | §3 Evaluate endpoint proposal; classify KEEP/MODIFY/REMOVE/ADD with code reasons; prefer next-activity in mutation responses | T1, T4 (gate G6) | §3 | Planned |
-| IA-11 | §4 Public JSON schemas per endpoint: method/path/req/resp/status/validation/error codes/idempotency/state-change; consistent error envelope from actual exceptions | T4, T6 (gate G7) | §4, §8 | Planned |
+| IA-11 | §4 Public JSON schemas per endpoint: method/path/req/resp/status/validation/error codes/idempotency/state-change; consistent error envelope from actual exceptions; duplicate-submission/idempotency analysis (RC-6) | T4, T6 (gate G7) | §4, §8 | Planned |
 | IA-12 | §5 Activity envelope: supports theory/MCQ/free-form/code/tracing/complexity/graph-construction; frontend determines type/mode/purpose/input/identity/context/position/planned-vs-adaptive/budget/allowed actions; no universal sequence | T3, T5 | §5 | Planned |
 | IA-13 | §6 TurnView → public mapping table (field → JSON → expose? → transform → reason); never expose provider internals/raw prompts/keys/paths/tracebacks | T2, T5 (gates G5, G8) | §6, §9 | Planned |
 | IA-14 | §7 Session model: persistent vs session state; ID/lifecycle/budget/elapsed/remaining/current activity/resume; budget requested but engine decides; no hardcoded question counts; planned + adaptive scope | T2, T5 | §7 | Planned |
@@ -196,11 +207,11 @@ Slice 1A is done only when **all** gates pass. These are the finish-line criteri
 | G2 | All 14 mandated sections present and non-empty | Heading grep against the instruction's section list |
 | G3 | Traceability: every instruction requirement reflected in the doc (sections) and nothing silently dropped | IA-matrix re-run against the finished doc |
 | G4 | Every public `TutorService` method inventoried with all six attributes (params/return/side effects/persistence/errors/exposure) | Count vs runtime `inspect` enumeration of the class |
-| G5 | Every `TurnView` field mapped with an expose? decision; every actual `extra` key documented | Field count vs code construction sites + runtime sample walk |
-| G6 | All 13 proposed endpoints classified (KEEP/MODIFY/REMOVE/ADD) with code-cited reasons | Checklist count = 13 classifications |
+| G5 | Every `TurnView` field mapped with an expose? decision; every actual `extra` key carries an explicit public-contract decision — expose as stable public field / transform into another public field / keep internal (RC-4); no generic untyped `extra` object in the public contract | Field count vs code construction sites + runtime sample walk + per-key decision audit |
+| G6 | All 12 working-proposal endpoints classified (KEEP/MODIFY/REMOVE/ADD) with code-cited reasons; endpoint count is not a success metric — ADD/REMOVE recommendations expected where justified (RC-5) | Checklist covers all 12 classifications |
 | G7 | Error envelope defined; each mapped HTTP error cites the actual exception(s) it derives from | Exception inventory cross-check |
 | G8 | Forbidden-exposure scan clean: no API keys, credentials, env values, raw provider payloads, SQL, filesystem paths, or tracebacks in the doc | Pattern grep (`sk-`, `password`, `C:\Users`, `Traceback`, SQL strings) |
-| G9 | No behavior change: `pytest tests -q` still 91 passed / 4 skipped / 0 failed; `git diff <pre-task-SHA>..HEAD --name-only` touches ONLY `docs/V1_SLICE_1_API_BOUNDARY_DESIGN.md` (+ this plan file) | Test suite + diff audit |
+| G9 | No behavior change: `pytest tests -q` still 91 passed / 4 skipped / 0 failed; `git diff <pre-task-SHA>..HEAD --name-only` touches ONLY `docs/V1_SLICE_1_API_BOUNDARY_DESIGN.md` (+ this plan file) — tracked files only; transient gitignored runtime artifacts (caches/logs) are not changes (RC-3) | Test suite + diff audit |
 | G10 | Final report delivered in chat with all six IA-23 items; work STOPPED | Report presence |
 
 ## 7. Risk register
@@ -259,11 +270,11 @@ Slice 1A is done only when **all** gates pass. These are the finish-line criteri
 | ID | Decision | Proposed default |
 |---|---|---|
 | D1 | Approve the Slice 1A scope boundary as written (§2)? | Approve as written |
-| D2 | Approve the endpoint-evaluation approach (classify all 13 proposed endpoints, evidence-based; refinement allowed) | Approve |
+| D2 | Approve the endpoint-evaluation approach (classify all 12 working-proposal endpoints, evidence-based; refinement allowed; endpoint count not a success metric — prefer smallest coherent API, RC-5) | Approve |
 | D3 | Plan/doc locations: plan in `plans/`, design doc in `docs/` (exact filename from the instruction) | Approve |
 | D4 | Storage defaults: MySQL for the running app, MemoryStorage for automated tests | Approve |
-| D5 | CORS policy direction: explicit local dev origins only, no wildcard, no auth | Approve |
-| D6 | Framework neutrality: design doc stays transport-neutral; HTTP framework chosen at Slice 1B start | Approve |
+| D5 | CORS policy direction: explicit local dev origins only, no wildcard, no auth; CORS is browser-origin control, not authentication (RC-8); local single-user application; not a complete production security architecture | Approve |
+| D6 | Framework neutrality: design doc stays transport-neutral; no FastAPI/Flask/stdlib selection in Slice 1A; framework chosen in Slice 1B after the API contract is reviewed (RC-9) | Approve |
 
 ### 10.3 Open questions (plan-level; design-doc-level ones are generated during execution per IA-21)
 
@@ -315,3 +326,25 @@ Slice 1A is done only when **all** gates pass. These are the finish-line criteri
 | Version | Date | Trigger | Sections touched | Decision |
 |---|---|---|---|---|
 | 0.1.0 | 2026-09-02 | Initial draft from instruction attachment (23 IA items traced) | all | Submitted for review |
+| 0.2.0 | 2026-09-02 | Consolidated review feedback on v0.1.0 — RC-1..RC-10 applied as ONE revision (RC-2: no ceremony added) | §2.1, §2.3, §3, §4, §6 (G5/G6/G9), §10.2, §14 | Supersedes v0.1.0 — awaiting approval |
+
+### 14.1 Correction map — review of v0.1.0 → applied locations
+
+| RC | Reviewer correction | Applied at |
+|---|---|---|
+| RC-1 | Endpoint count is 12, not 13 — fix every occurrence; G6 = 12 classifications | §2.3 (prose ×2), §6 G6, §10.2 D2 |
+| RC-2 | Do not expand planning ceremony | Whole revision: no new gates/traceability layers/reviewer artifacts; wording-only strengthening |
+| RC-3 | Distinguish source changes / deliverables / transient runtime artifacts | §2.1 item 3, §3 artifact taxonomy, §6 G9 note |
+| RC-4 | TurnView.extra: per-key public-contract decision; no generic untyped exposure | §6 G5 |
+| RC-5 | Endpoint proposal not a commitment; count not a metric; smallest coherent API | §2.3, §6 G6, §10.2 D2 |
+| RC-6 | Duplicate-submission / idempotency analysis (design-only) | §4 T4, §5 IA-11; design-doc §4/§8 at execution |
+| RC-7 | Stale activity/session-state analysis (design-only; no engine change) | §4 T4; design-doc §3/§8/§14 at execution |
+| RC-8 | CORS clarification (origin control ≠ auth; no wildcard; not production security) | §10.2 D5; design-doc §9 at execution |
+| RC-9 | Framework neutrality preserved; selection in Slice 1B | §10.2 D6, §13 |
+| RC-10 | Existing good constraints preserved unweakened | §2.2 unchanged; gate G9 re-verified |
+
+**Open issues from this revision:** none blocking. Note on "final": all corrections are applied and this
+revision (v0.2.0) supersedes v0.1.0, but the approval stamp v1.0.0 is intentionally NOT applied — per the
+review instruction, Slice 1A execution is authorized only after you explicitly approve this revision.
+Rollback: v0.1.0 remains intact in git history (commit `5613943`);
+`git checkout 5613943 -- plans/V1_SLICE_1A_PLAN.md` restores it if this revision is rejected.
