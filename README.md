@@ -275,7 +275,7 @@ into MySQL by `setup-db` for inspection and future DB-driven evolution.
 ## 11. HTTP API (Slice 1B)
 
 Thin FastAPI adapter over `TutorService` implementing the frozen contract in
-`docs/V1_SLICE_1_API_BOUNDARY_DESIGN.md` (v1.2). 11 endpoints under `/api/v1`:
+`docs/V1_SLICE_1_API_BOUNDARY_DESIGN.md` (v1.2). 12 endpoints under `/api/v1`:
 
 | Method & path | Purpose |
 |---|---|

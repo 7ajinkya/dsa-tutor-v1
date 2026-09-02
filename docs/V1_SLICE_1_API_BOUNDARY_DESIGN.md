@@ -140,7 +140,7 @@ below; the final set is the smallest coherent API for the V1 learner experience.
 | 12 | `GET /api/v1/home` | **MODIFY** | Thin read-only composition: `{daily, plan (from session_plan), progress_summary, resume {available, session_id}}`. No single service method returns it; composition only — no pedagogic logic (invariant 2) |
 | ADD | `POST /api/v1/sessions/{session_id}/theory-seen` | **ADD** | `mark_theory_seen` (service.py:231-244) — without it the API cannot advance past teach-unit theory (the CLI uses Enter -> `mark_theory_seen`, interactive.py:138). Discovered from code; not in the original proposal |
 
-**Final API set: 11 endpoints** (12 proposed − 1 removed + 1 added; count is a consequence, not a goal).
+**Final API set: 12 endpoints** — the implemented 1B API provides 12 (11 from the proposal after removing `/why`, plus the added `theory-seen`; the 1A review initially counted 11 — historical note). Count is a consequence, not a goal.
 
 ---
 
