@@ -1,4 +1,6 @@
-PyMySQL>=1.1.0
-cryptography>=42.0.0
-python-dotenv>=1.0.0
-pytest>=8.0.0
+# Pinned to the exact versions verified in the V1 baseline run (V1_BASELINE_REPORT.md, section 8).
+# Slice 0 (2026-09-02): '>=' floors replaced with verified pins for reproducibility.
+PyMySQL==1.2.0
+cryptography==50.0.1
+python-dotenv==1.2.3
+pytest==9.1.1

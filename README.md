@@ -216,7 +216,7 @@ into MySQL by `setup-db` for inspection and future DB-driven evolution.
 .venv\Scripts\python -m pytest tests -q
 ```
 
-63 tests, all passing (4 MySQL tests auto-skip until `.env` credentials work):
+95 tests collected: 91 passing everywhere; the 4 live-MySQL persistence tests auto-skip until `.env` credentials work:
 
 | suite                        | covers                                                              |
 |------------------------------|---------------------------------------------------------------------|
@@ -250,8 +250,9 @@ into MySQL by `setup-db` for inspection and future DB-driven evolution.
 
 ## 9. Known limitations & risks
 
-- All 67 tests pass against a live MySQL 8 (including the 4 persistence tests); they
-  auto-skip only when `.env` credentials are absent or wrong.
+- Full suite: 95 tests collected. 91 pass everywhere; all 95 (including the 4
+  live-MySQL persistence tests) pass against a live MySQL 8. They auto-skip only
+  when `.env` credentials are absent or wrong.
 - Builtin free-form grading is keyword-rubric based: it can miss unusual phrasings. The
   fixed harness keeps its behavior observable; `hybrid` mode upgrades quality when you add
   an API key.
