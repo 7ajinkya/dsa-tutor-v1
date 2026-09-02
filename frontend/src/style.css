@@ -12,3 +12,51 @@ body {
 .stub {
   padding: 1rem 0;
 }
+
+button, .button-link {
+  border: 0;
+  border-radius: 0.45rem;
+  background: #155e75;
+  color: #fff;
+  cursor: pointer;
+  display: inline-block;
+  font: inherit;
+  font-weight: 650;
+  padding: 0.7rem 1rem;
+  text-decoration: none;
+}
+
+button:disabled { cursor: wait; opacity: 0.65; }
+
+.dashboard, .progress-page { margin: 0 auto; max-width: 1100px; }
+.page-intro { max-width: 720px; margin: 0 0 1.5rem; }
+.page-intro h1 { margin: 0.1rem 0 0.45rem; }
+.page-intro p { margin: 0; color: #50555c; }
+.eyebrow { color: #176b87; font-size: 0.82rem; font-weight: 700; letter-spacing: 0.04em; margin: 0 0 0.35rem; text-transform: uppercase; }
+.dashboard-grid { display: grid; gap: 1rem; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.dashboard-card, .plan-card, .orientation-card, .empty-card, .error-card { border: 1px solid #d6dce0; border-radius: 0.7rem; padding: 1.2rem; }
+.dashboard-card h2, .plan-card h2, .empty-card h2, .error-card h2 { margin: 0 0 0.65rem; }
+.dashboard-card p { color: #50555c; }
+.metric { color: #102a43 !important; font-size: 1.75rem; font-weight: 750; margin: 0.3rem 0; }
+.metric span { font-size: 1rem; font-weight: 500; }
+.action-card { background: #ecfeff; border-color: #8bd3dd; }
+.plan-card { display: grid; gap: 1rem; grid-template-columns: minmax(230px, 0.85fr) minmax(0, 1.15fr); margin-top: 1rem; }
+.plan-card > div > p:last-child, .empty-copy { color: #50555c; }
+.plan-list { margin: 0; padding-left: 1.4rem; }
+.plan-list li { display: flex; gap: 0.5rem; justify-content: space-between; padding: 0.45rem 0; }
+.plan-list span { color: #50555c; white-space: nowrap; }
+.error-card, .error-banner { background: #fff4f2; border: 1px solid #f0a59a; }
+.error-banner { align-items: center; display: flex; gap: 1rem; justify-content: space-between; margin-bottom: 1rem; padding: 0.75rem 1rem; }
+.error-banner button { background: #8b2717; }
+.inline-error { color: #a32917 !important; font-weight: 600; }
+.skeleton-card, .skeleton-row { animation: pulse 1.2s ease-in-out infinite alternate; background: #e8eef1; border-radius: 0.7rem; }
+.skeleton-card { min-height: 190px; }.skeleton-row { height: 82px; margin-bottom: 0.65rem; }
+@keyframes pulse { to { opacity: 0.5; } }
+.orientation-card { display: grid; gap: 1rem; grid-template-columns: repeat(3, 1fr); margin-bottom: 1rem; }
+.orientation-card div { display: grid; gap: 0.25rem; }.orientation-card span, .filter-summary, .row-module { color: #50555c; }
+.empty-card { max-width: 650px; }.module-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
+.module-tabs button { background: #e6f3f5; color: #164e63; }.module-tabs button.selected { background: #155e75; color: #fff; }
+.progress-list { display: grid; gap: 0.65rem; }.progress-row { align-items: center; border: 1px solid #d6dce0; border-radius: 0.55rem; display: grid; gap: 1rem; grid-template-columns: minmax(220px, 1fr) auto auto; padding: 0.9rem 1rem; }
+.progress-row h2 { font-size: 1rem; margin: 0; }.row-module { font-size: 0.85rem; margin: 0 0 0.2rem; }.progress-row > p { color: #50555c; margin: 0; white-space: nowrap; }
+.mastery-badge { background: #f1f5f9; border-radius: 99px; font-size: 0.8rem; font-weight: 700; padding: 0.35rem 0.6rem; }.mastery-badge[data-state="INDEPENDENT"], .mastery-badge[data-state="PROFICIENT"] { background: #dcfce7; color: #166534; }.mastery-badge[data-state="DEVELOPING"] { background: #fef3c7; color: #92400e; }
+@media (max-width: 800px) { .dashboard-grid, .orientation-card, .plan-card { grid-template-columns: 1fr; }.progress-row { align-items: start; grid-template-columns: 1fr; gap: 0.45rem; }.plan-list li { align-items: start; flex-direction: column; }.error-banner { align-items: start; flex-direction: column; } }
