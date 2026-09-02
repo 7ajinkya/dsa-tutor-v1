@@ -272,7 +272,7 @@ Every flow below is annotated with the **observed real 1B behavior** it relies o
 | **Answer** | `POST answer` with fresh `Idempotency-Key` → render `turn` + top-level `result` | C-03 (correct, advance) |
 | **Answer retry (lost response)** | same key, same path → 200 replay `duplicate=true` + authoritative current turn; toast "Your answer was already recorded" | C-04 (replay, one attempt) |
 | **Stale tab / multi-tab** | 409 `STALE_ACTIVITY` → **adopt `error.turn`** (replace stored turn), toast "Skipped ahead — showing the current task" | C-05 (409 + fresh turn payload) |
-| **Refresh / reload (F5)** | app state is memory-only by design; router guard on `/session/:id` calls `GET /sessions/:id` (read-only snapshot, zero writes server-side) → learner continues exactly where they were | C-14 (snapshot 200); audit §1 (zero-write verified by test 27) |
+| **Refresh / reload (F5)** | app state is memory-only by design; router guard on `/session/:id` calls `GET /sessions/:id` — served by the read-only `TutorService.session_snapshot()` helper (zero writes server-side, verified by contract test 27) → learner continues exactly where they were | C-14 (snapshot 200); audit §1 |
 | **Server restart mid-session** | mutations/get return the persisted truth via context reattach (targeting helper); if MySQL down → 503 `STORAGE_UNAVAILABLE` retry modal | targeting helper §4.13; C-14 |
 | **Stop** | confirm → `POST stop` → ended/paused rendering; repeat stop is a 200 no-op (button already hidden) | C-15; C-16 (no-op) |
 | **Session end (engine)** | ended turn renders summary + `end_reason_code` badge + detail; CTA home | §4.4/§5.1; C-15 shapes |
