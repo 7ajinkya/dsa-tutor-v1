@@ -2,6 +2,8 @@
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import SessionHeader from "../components/SessionHeader.vue";
+import ActivityDispatcher from "../components/activity/ActivityDispatcher.vue";
+import ResultCard from "../components/ResultCard.vue";
 import TheoryPanel from "../components/TheoryPanel.vue";
 import WhyPanel from "../components/WhyPanel.vue";
 import { useSessionStore } from "../stores/session";
@@ -11,6 +13,7 @@ const route = useRoute();
 const router = useRouter();
 const sessionStore = useSessionStore();
 const localError = ref<string | null>(null);
+const activityError = ref<string | null>(null);
 const turn = computed(() => sessionStore.turn);
 const session = computed(() => sessionStore.session);
 const isLoading = computed(() => sessionStore.status === "loading" || sessionStore.inFlight);
@@ -36,6 +39,16 @@ async function acknowledgeTheory(): Promise<void> {
     await sessionStore.theorySeen();
   } catch (cause) {
     localError.value = cause instanceof Error ? cause.message : "Could not record this study turn.";
+  }
+}
+
+async function submitActivity(answer: string): Promise<void> {
+  if (isLoading.value || turn.value?.type !== "activity" || turn.value.activity === null) return;
+  activityError.value = null;
+  try {
+    await sessionStore.submitAnswer(turn.value.activity.id, answer);
+  } catch (cause) {
+    activityError.value = cause instanceof Error ? cause.message : "Could not submit this answer.";
   }
 }
 
@@ -123,6 +136,19 @@ watch(() => route.params.id, () => { void loadRouteSession(); }, { immediate: tr
           :busy="isLoading"
           @acknowledge="acknowledgeTheory"
         />
+        <template v-else-if="turn.type === 'activity' && turn.activity">
+          <ResultCard
+            v-if="sessionStore.lastResult"
+            :result="sessionStore.lastResult"
+          />
+          <ActivityDispatcher
+            :key="turn.activity.id"
+            :activity="turn.activity"
+            :busy="isLoading"
+            :error="activityError"
+            @submit="submitActivity"
+          />
+        </template>
         <article
           v-else
           class="turn-notice"
