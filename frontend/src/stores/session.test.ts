@@ -170,6 +170,16 @@ describe("useSessionStore - theory-seen", () => {
     await store.theorySeen();
     expect(rawTurn(store)).toBe(advancedTurn);
   });
+
+  it("suppresses a duplicate theory acknowledgement while the first is in flight", async () => {
+    mockEndpoints.theorySeen.mockReturnValueOnce(new Promise(() => {}));
+    const store = useSessionStore();
+    store.session = sessionInfo;
+    store.turn = theoryTurn;
+    void store.theorySeen();
+    await store.theorySeen();
+    expect(mockEndpoints.theorySeen).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe("useSessionStore - answer (server truth + idempotency + stale adoption)", () => {
