@@ -1,8 +1,18 @@
 <script setup lang="ts">
+import { ref } from "vue";
 import type { Activity } from "../../api/types";
+import ExplainPanel from "../ExplainPanel.vue";
+import HintDrawer from "../HintDrawer.vue";
+import RevealDialog from "../RevealDialog.vue";
 
 defineProps<{ activity: Activity; busy: boolean; error: string | null }>();
 const emit = defineEmits<{ submit: [answer: string] }>();
+
+const revealDialogRef = ref<InstanceType<typeof RevealDialog> | null>(null);
+
+function onRevealCta(): void {
+  void revealDialogRef.value?.triggerReveal();
+}
 </script>
 
 <template>
@@ -22,6 +32,12 @@ const emit = defineEmits<{ submit: [answer: string] }>();
       {{ activity.purpose }}
     </p>
     <h2>{{ activity.prompt }}</h2>
+
+    <ExplainPanel
+      :activity="activity"
+      :busy="busy"
+    />
+
     <form @submit.prevent="emit('submit', '')">
       <slot />
       <p
@@ -31,13 +47,26 @@ const emit = defineEmits<{ submit: [answer: string] }>();
       >
         {{ error }}
       </p>
-      <button
-        v-if="activity.available_actions.includes('answer')"
-        type="submit"
-        :disabled="busy"
-      >
-        {{ busy ? "Submitting…" : "Submit answer" }}
-      </button>
+      <div class="activity-actions">
+        <button
+          v-if="activity.available_actions.includes('answer')"
+          type="submit"
+          class="primary-button submit-btn"
+          :disabled="busy"
+        >
+          {{ busy ? "Submitting…" : "Submit answer" }}
+        </button>
+        <RevealDialog
+          ref="revealDialogRef"
+          :activity="activity"
+          :busy="busy"
+        />
+        <HintDrawer
+          :activity="activity"
+          :busy="busy"
+          @reveal="onRevealCta"
+        />
+      </div>
     </form>
   </article>
 </template>
