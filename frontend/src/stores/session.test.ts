@@ -246,6 +246,25 @@ describe("useSessionStore - answer (server truth + idempotency + stale adoption)
     expect(mockEndpoints.answer).toHaveBeenCalledTimes(1);
   });
 
+  it("C8 cleanup (F8): a keyed replay (result.duplicate=true) informs the learner the answer was already recorded", async () => {
+    const ui = useUiStore();
+    const replayResult = { ...advancedTurn.result!, duplicate: true };
+    mockEndpoints.answer.mockResolvedValue({ turn: advancedTurn, result: replayResult });
+    const store = useSessionStore();
+    store.session = sessionInfo;
+    await store.submitAnswer("e001_graph_definition", "a");
+    expect(ui.toasts.some((t) => t.text === "Your answer was already recorded.")).toBe(true);
+  });
+
+  it("C8 cleanup (F8): a fresh submission (duplicate=false) raises no duplicate toast", async () => {
+    const ui = useUiStore();
+    mockEndpoints.answer.mockResolvedValue({ turn: advancedTurn, result: advancedTurn.result! });
+    const store = useSessionStore();
+    store.session = sessionInfo;
+    await store.submitAnswer("e001_graph_definition", "a");
+    expect(ui.toasts.some((t) => t.text === "Your answer was already recorded.")).toBe(false);
+  });
+
   it("C8 retains the last submission for the retry affordance after a retryable failure", async () => {
     mockEndpoints.answer
       .mockRejectedValueOnce(new ApiClientError(503, "STORAGE_UNAVAILABLE",
@@ -302,6 +321,25 @@ describe("useSessionStore - answer (server truth + idempotency + stale adoption)
     const store = useSessionStore();
     await store.resume(1);
     expect(ui.staleAdopted).toBe(false);
+  });
+
+  it("C8 cleanup (F11): a later authoritative action clears an obsolete retryable answer error", async () => {
+    mockEndpoints.answer.mockRejectedValue(new ApiClientError(503, "STORAGE_UNAVAILABLE",
+      "Storage is temporarily unavailable.", true));
+    const store = useSessionStore();
+    store.session = sessionInfo;
+    store.turn = makeTurn();                       // the learner is looking at the current activity
+    await expect(store.submitAnswer("e001_graph_definition", "a")).rejects.toThrow();
+    expect(store.error?.retryable).toBe(true);
+    expect(store.lastSubmission).toEqual({ activityId: "e001_graph_definition", answer: "a" });
+    expect(store.pendingKey).toBe("key-1");
+    // the learner uses a different authoritative action instead of retrying
+    const hinted = makeTurn({ hint: { level: 1, kind: "socratic", text: "Think about dots and lines." } });
+    mockEndpoints.hint.mockResolvedValue({ turn: hinted });
+    await store.requestHint();
+    expect(store.error).toBeNull();                 // obsolete answer error must not linger
+    expect(store.lastSubmission).toBeNull();        // nothing left to retry
+    expect(store.pendingKey).toBeNull();            // the voided key is never reused
   });
 
   it("never locally invents pedagogical state (raw target is the server object)", async () => {

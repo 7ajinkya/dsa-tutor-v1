@@ -23,17 +23,21 @@ export function defensiveTurnLabel(turn: TurnEnvelope): string {
 
 export interface EndedSummary {
   badge: string;
+  reasonCode: string | null;
   detail: string;
   showResumeCta: boolean;
 }
 
 /** C8: renders the authoritative ended state without offering recovery
- *  prompts — the session stays ended (design §5.4). */
-export function endedSummary(turn: TurnEnvelope, session: { status: string } | null): EndedSummary {
+ *  prompts — the session stays ended (design §5.4). The reason code is the
+ *  server-provided `end_reason_code`, passed through verbatim. */
+export function endedSummary(turn: TurnEnvelope, session: { status: string;
+  end_reason_code?: string | null } | null): EndedSummary {
   const code = session?.status === "paused" ? "paused" : "ended";
   const detail = turn.notice?.text ?? "The session is no longer active.";
   return {
     badge: code,
+    reasonCode: session?.end_reason_code ?? null,
     detail,
     showResumeCta: code === "paused",
   };

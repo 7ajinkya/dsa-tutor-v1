@@ -35,6 +35,11 @@ const retryableAnswer = computed(() =>
   && sessionStore.lastSubmission !== null,
 );
 
+// C8 cleanup (F11): a view-local submission error belongs to one turn only.
+// Once the server supplies a different authoritative turn (retry succeeded,
+// hint advanced the turn, reload, ...), the stale message must not linger.
+watch(() => sessionStore.turn, () => { activityError.value = null; });
+
 async function loadRouteSession(): Promise<void> {
   localError.value = null;
   const id = routeSessionId(route.params.id);
@@ -75,6 +80,18 @@ async function submitActivity(answer: string): Promise<void> {
     await sessionStore.submitAnswer(turn.value.activity.id, answer);
   } catch (cause) {
     activityError.value = cause instanceof Error ? cause.message : "Could not submit this answer.";
+  }
+}
+
+/** C8 cleanup (F9): resume CTA of the ended screen (paused sessions only). */
+async function resumeEndedSession(): Promise<void> {
+  const id = session.value?.id;
+  if (isLoading.value || id === null || id === undefined) return;
+  localError.value = null;
+  try {
+    await sessionStore.resume(id);
+  } catch (cause) {
+    localError.value = cause instanceof Error ? cause.message : "Could not resume this session.";
   }
 }
 
@@ -194,10 +211,20 @@ watch(() => route.params.id, () => { void loadRouteSession(); }, { immediate: tr
             class="turn-ended"
             aria-labelledby="ended-title"
           >
-            <p class="eyebrow">What do I do now?</p>
+            <p class="eyebrow">
+              What do I do now?
+            </p>
             <h2 id="ended-title">
               {{ ended.badge === "paused" ? "Session paused" : "Session ended" }}
             </h2>
+            <p
+              v-if="ended.reasonCode"
+              class="muted"
+            >
+              <span
+                class="ended-reason-badge"
+              >{{ ended.reasonCode }}</span>
+            </p>
             <p>{{ ended.detail }}</p>
             <p
               v-if="session?.units_completed"
@@ -205,6 +232,13 @@ watch(() => route.params.id, () => { void loadRouteSession(); }, { immediate: tr
             >
               Units completed this session: {{ session.units_completed }}
             </p>
+            <button
+              v-if="ended.showResumeCta"
+              type="button"
+              @click="resumeEndedSession"
+            >
+              Resume session
+            </button>
             <button
               type="button"
               @click="goHome"

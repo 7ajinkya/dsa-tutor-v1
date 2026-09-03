@@ -60,6 +60,12 @@ export const useSessionStore = defineStore("session", () => {
     // transient per-activity panels reset with the turn
     lastExplanation.value = null;
     lastSolution.value = null;
+    // C8 cleanup (F11): an authoritative turn supersedes any earlier answer
+    // attempt — the retained submission, its idempotency key and the answer
+    // error are obsolete the moment the server's turn is applied.
+    lastSubmission.value = null;
+    pendingKey.value = null;
+    error.value = null;
   }
 
   /** C8: a successful authoritative load supersedes any stale-recovery state. */
@@ -185,8 +191,10 @@ export const useSessionStore = defineStore("session", () => {
       const res = await api.answer(session.value.id, activityId, answer, key);
       applyTurn(res.turn);
       lastResult.value = res.result;
-      lastSubmission.value = null; // success: nothing left to retry
-      pendingKey.value = null; // success: the next submission is intentionally new
+      if (res.result.duplicate === true) {
+        // C8 cleanup (F8): keyed replay — the original answer was already recorded.
+        ui.pushToast("info", "Your answer was already recorded.");
+      }
       ui.clearStaleAdopted();
       status.value = "ready";
       return res;
@@ -195,9 +203,7 @@ export const useSessionStore = defineStore("session", () => {
           && err.details.turn !== undefined) {
         // stale adoption (design §16): authoritative turn replaces the local one;
         // the stale submission is void — no automatic re-submission.
-        applyTurn(err.details.turn as TurnEnvelope);
-        pendingKey.value = null;
-        lastSubmission.value = null; // the stale submission is void
+        applyTurn(err.details.turn as TurnEnvelope); // also voids the stale submission state
         status.value = "ready";
         ui.markStaleAdopted();
         ui.pushToast("info", "Skipped ahead — showing the current task.");

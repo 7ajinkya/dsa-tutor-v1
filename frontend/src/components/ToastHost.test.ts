@@ -42,4 +42,12 @@ describe("C8 ToastHost (learner-facing recovery notices)", () => {
     await wrapper.find(".toast-dismiss").trigger("click");
     expect(wrapper.findAll(".toast")).toHaveLength(0);
   });
+
+  it("C8 cleanup (F10): shows the intended dismiss glyph, not a broken placeholder", async () => {
+    const wrapper = mountHost();
+    const ui = useUiStore();
+    ui.pushToast("info", "Skipped ahead - showing the current task.");
+    await nextTick();
+    expect(wrapper.find(".toast-dismiss").text()).toBe("\u2715");
+  });
 });

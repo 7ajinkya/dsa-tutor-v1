@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentSessionMatches, defensiveTurnLabel, routeSessionId, theoryScope } from "./sessionView";
+import { currentSessionMatches, defensiveTurnLabel, endedSummary, routeSessionId, theoryScope } from "./sessionView";
 import type { SessionInfo, TurnEnvelope } from "../api/types";
 
 const session: SessionInfo = {
@@ -41,8 +41,6 @@ describe("C5 session display helpers", () => {
 });
 
 
-import { endedSummary } from "./sessionView";
-
 describe("C8 ended-session summary (authoritative, no recovery prompts)", () => {
   const endedTurn = {
     type: "ended" as const, session: null, step: null, notice: null,
@@ -73,5 +71,16 @@ describe("C8 ended-session summary (authoritative, no recovery prompts)", () => 
   it("falls back to a neutral detail when the server sends none", () => {
     const summary = endedSummary(endedTurn, { status: "completed" });
     expect(summary.detail).toBe("The session is no longer active.");
+  });
+
+  it("C8 cleanup: passes the server-provided end_reason_code through verbatim", () => {
+    const summary = endedSummary(endedTurnWithNotice,
+      { status: "paused", end_reason_code: "learner_stop" });
+    expect(summary.reasonCode).toBe("learner_stop");
+  });
+
+  it("C8 cleanup: omits the reason badge when the server provides no end_reason_code", () => {
+    const summary = endedSummary(endedTurn, { status: "completed", end_reason_code: null });
+    expect(summary.reasonCode).toBeNull();
   });
 });

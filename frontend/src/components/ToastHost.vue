@@ -25,7 +25,7 @@ const ui = useUiStore();
         aria-label="Dismiss notification"
         @click="ui.dismissToast(toast.id)"
       >
-        ?
+        ✕
       </button>
     </div>
   </div>
