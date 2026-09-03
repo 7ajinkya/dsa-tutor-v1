@@ -39,3 +39,39 @@ describe("C5 session display helpers", () => {
       .toBe("2 checks expected after acknowledgement");
   });
 });
+
+
+import { endedSummary } from "./sessionView";
+
+describe("C8 ended-session summary (authoritative, no recovery prompts)", () => {
+  const endedTurn = {
+    type: "ended" as const, session: null, step: null, notice: null,
+    activity: null, theory: null, result: null, hint: null,
+  };
+  const endedTurnWithNotice = {
+    ...endedTurn,
+    notice: { kind: "ended", text: "Session paused - state persisted (learner requested stop)." },
+  };
+
+  it("renders an ended session as ended with no resume CTA", () => {
+    const summary = endedSummary(endedTurn, { status: "completed" });
+    expect(summary.badge).toBe("ended");
+    expect(summary.showResumeCta).toBe(false);
+  });
+
+  it("renders a paused session with the resume CTA available", () => {
+    const summary = endedSummary(endedTurnWithNotice, { status: "paused" });
+    expect(summary.badge).toBe("paused");
+    expect(summary.showResumeCta).toBe(true);
+  });
+
+  it("prefers the server notice text as the detail", () => {
+    const summary = endedSummary(endedTurnWithNotice, { status: "paused" });
+    expect(summary.detail).toBe("Session paused - state persisted (learner requested stop).");
+  });
+
+  it("falls back to a neutral detail when the server sends none", () => {
+    const summary = endedSummary(endedTurn, { status: "completed" });
+    expect(summary.detail).toBe("The session is no longer active.");
+  });
+});

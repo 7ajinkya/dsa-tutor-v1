@@ -7,7 +7,10 @@ import ResultCard from "../components/ResultCard.vue";
 import TheoryPanel from "../components/TheoryPanel.vue";
 import WhyPanel from "../components/WhyPanel.vue";
 import { useSessionStore } from "../stores/session";
-import { currentSessionMatches, defensiveTurnLabel, routeSessionId } from "./sessionView";
+import {
+  currentSessionMatches, defensiveTurnLabel, endedSummary,
+  routeSessionId,
+} from "./sessionView";
 
 const route = useRoute();
 const router = useRouter();
@@ -19,6 +22,18 @@ const session = computed(() => sessionStore.session);
 const isLoading = computed(() => sessionStore.status === "loading" || sessionStore.inFlight);
 const reasons = computed(() => turn.value?.step?.why ?? []);
 const invalidSession = computed(() => routeSessionId(route.params.id) === null);
+const ended = computed(() =>
+  turn.value?.type === "ended"
+    ? endedSummary(turn.value, session.value)
+    : null,
+);
+/** C8: retry affordance — only for retryable failures of the last answer; the
+ *  store keeps the same Idempotency-Key so the server can deduplicate. */
+const retryableAnswer = computed(() =>
+  sessionStore.error !== null
+  && sessionStore.error.retryable
+  && sessionStore.lastSubmission !== null,
+);
 
 async function loadRouteSession(): Promise<void> {
   localError.value = null;
@@ -39,6 +54,17 @@ async function acknowledgeTheory(): Promise<void> {
     await sessionStore.theorySeen();
   } catch (cause) {
     localError.value = cause instanceof Error ? cause.message : "Could not record this study turn.";
+  }
+}
+
+async function retryLastAnswer(): Promise<void> {
+  const submission = sessionStore.lastSubmission;
+  if (isLoading.value || submission === null) return;
+  activityError.value = null;
+  try {
+    await sessionStore.submitAnswer(submission.activityId, submission.answer);
+  } catch (cause) {
+    activityError.value = cause instanceof Error ? cause.message : "Could not submit this answer.";
   }
 }
 
@@ -141,6 +167,19 @@ watch(() => route.params.id, () => { void loadRouteSession(); }, { immediate: tr
             v-if="sessionStore.lastResult"
             :result="sessionStore.lastResult"
           />
+          <div
+            v-if="retryableAnswer"
+            class="error-banner"
+            role="alert"
+          >
+            <span>A temporary issue interrupted your answer. Your answer is kept — you can retry it.</span>
+            <button
+              type="button"
+              @click="retryLastAnswer"
+            >
+              Retry answer
+            </button>
+          </div>
           <ActivityDispatcher
             :key="turn.activity.id"
             :activity="turn.activity"
@@ -148,6 +187,31 @@ watch(() => route.params.id, () => { void loadRouteSession(); }, { immediate: tr
             :error="activityError"
             @submit="submitActivity"
           />
+        </template>
+        <template v-else-if="turn.type === 'ended'">
+          <article
+            v-if="ended"
+            class="turn-ended"
+            aria-labelledby="ended-title"
+          >
+            <p class="eyebrow">What do I do now?</p>
+            <h2 id="ended-title">
+              {{ ended.badge === "paused" ? "Session paused" : "Session ended" }}
+            </h2>
+            <p>{{ ended.detail }}</p>
+            <p
+              v-if="session?.units_completed"
+              class="muted"
+            >
+              Units completed this session: {{ session.units_completed }}
+            </p>
+            <button
+              type="button"
+              @click="goHome"
+            >
+              Back to Home
+            </button>
+          </article>
         </template>
         <article
           v-else

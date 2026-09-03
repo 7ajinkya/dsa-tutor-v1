@@ -21,6 +21,24 @@ export function defensiveTurnLabel(turn: TurnEnvelope): string {
   return "The server provided a turn that is ready to render.";
 }
 
+export interface EndedSummary {
+  badge: string;
+  detail: string;
+  showResumeCta: boolean;
+}
+
+/** C8: renders the authoritative ended state without offering recovery
+ *  prompts — the session stays ended (design §5.4). */
+export function endedSummary(turn: TurnEnvelope, session: { status: string } | null): EndedSummary {
+  const code = session?.status === "paused" ? "paused" : "ended";
+  const detail = turn.notice?.text ?? "The session is no longer active.";
+  return {
+    badge: code,
+    detail,
+    showResumeCta: code === "paused",
+  };
+}
+
 export function theoryScope(theory: Theory): string {
   return `${theory.checks_upcoming} check${theory.checks_upcoming === 1 ? "" : "s"} expected after acknowledgement`;
 }

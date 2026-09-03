@@ -41,6 +41,7 @@ export const useSessionStore = defineStore("session", () => {
   /** Idempotency key of the in-flight (or retryable-failed) answer submission. */
   const pendingKey = ref<string | null>(null);
   const lastResult = ref<Result | null>(null);
+  const lastSubmission = ref<{ activityId: string; answer: string } | null>(null);
   const lastExplanation = ref<string | null>(null);
   const lastSolution = ref<string | null>(null);
   const confidenceReported = ref<string[]>([]);
@@ -61,6 +62,11 @@ export const useSessionStore = defineStore("session", () => {
     lastSolution.value = null;
   }
 
+  /** C8: a successful authoritative load supersedes any stale-recovery state. */
+  function clearRecoveryState(): void {
+    useUiStore().clearStaleAdopted();
+  }
+
   // -------------------------------------------------------------- lifecycle
   async function start(pace: "slow" | "normal" | "fast" = "normal"): Promise<void> {
     if (inFlight.value) return;
@@ -74,6 +80,7 @@ export const useSessionStore = defineStore("session", () => {
       plan.value = null;
       status.value = "ready";
       confidenceReported.value = [];
+      clearRecoveryState();
     } catch (err) {
       status.value = "error";
       error.value = toStoreError(err);
@@ -93,6 +100,7 @@ export const useSessionStore = defineStore("session", () => {
       session.value = res.session;
       applyTurn(res.turn);
       status.value = "ready";
+      clearRecoveryState();
     } catch (err) {
       status.value = "error";
       error.value = toStoreError(err);
@@ -115,6 +123,7 @@ export const useSessionStore = defineStore("session", () => {
       applyTurn(res.turn);
       plan.value = res.plan;
       status.value = "ready";
+      clearRecoveryState();
     } catch (err) {
       status.value = "error";
       error.value = toStoreError(err);
@@ -168,6 +177,7 @@ export const useSessionStore = defineStore("session", () => {
     const ui = useUiStore();
     const key = pendingKey.value ?? api.makeIdempotencyKey();
     pendingKey.value = key; // kept across retryable failures; one key per submission
+    lastSubmission.value = { activityId, answer }; // C8: retained for the retry affordance
     inFlight.value = true;
     status.value = "loading";
     error.value = null;
@@ -175,6 +185,7 @@ export const useSessionStore = defineStore("session", () => {
       const res = await api.answer(session.value.id, activityId, answer, key);
       applyTurn(res.turn);
       lastResult.value = res.result;
+      lastSubmission.value = null; // success: nothing left to retry
       pendingKey.value = null; // success: the next submission is intentionally new
       ui.clearStaleAdopted();
       status.value = "ready";
@@ -186,6 +197,7 @@ export const useSessionStore = defineStore("session", () => {
         // the stale submission is void — no automatic re-submission.
         applyTurn(err.details.turn as TurnEnvelope);
         pendingKey.value = null;
+        lastSubmission.value = null; // the stale submission is void
         status.value = "ready";
         ui.markStaleAdopted();
         ui.pushToast("info", "Skipped ahead — showing the current task.");
@@ -195,6 +207,7 @@ export const useSessionStore = defineStore("session", () => {
       error.value = toStoreError(err);
       if (!(err instanceof ApiClientError && err.retryable)) {
         pendingKey.value = null; // non-retryable: the submission is void
+        lastSubmission.value = null;
       }
       throw err;
     } finally {
@@ -290,7 +303,7 @@ export const useSessionStore = defineStore("session", () => {
   return {
     // state
     session, turn, plan, status, error, inFlight, pendingKey,
-    lastResult, lastExplanation, lastSolution, confidenceReported,
+    lastResult, lastExplanation, lastSolution, confidenceReported, lastSubmission,
     // actions
     start, resume, loadSnapshot, stop, theorySeen, submitAnswer,
     requestHint, revealSolution, explainCurrent, reportConfidence,

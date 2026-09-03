@@ -1,6 +1,5 @@
 <script setup lang="ts">
-// C1 scaffold shell. Screen content arrives in C4/C5
-// (plans/V1_SLICE_1C_PLAN.md §5). No API/store logic here yet (C2/C3).
+import ToastHost from "./components/ToastHost.vue";
 </script>
 
 <template>
@@ -21,6 +20,7 @@
   <main class="app-main">
     <RouterView />
   </main>
+  <ToastHost />
 </template>
 
 <style scoped>

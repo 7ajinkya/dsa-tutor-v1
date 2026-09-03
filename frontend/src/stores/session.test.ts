@@ -246,6 +246,64 @@ describe("useSessionStore - answer (server truth + idempotency + stale adoption)
     expect(mockEndpoints.answer).toHaveBeenCalledTimes(1);
   });
 
+  it("C8 retains the last submission for the retry affordance after a retryable failure", async () => {
+    mockEndpoints.answer
+      .mockRejectedValueOnce(new ApiClientError(503, "STORAGE_UNAVAILABLE",
+        "Storage is temporarily unavailable.", true))
+      .mockResolvedValueOnce({ turn: advancedTurn, result: advancedTurn.result! });
+    const store = useSessionStore();
+    store.session = sessionInfo;
+    await expect(store.submitAnswer("e001_graph_definition", "a")).rejects.toThrow();
+    expect(store.lastSubmission).toEqual({ activityId: "e001_graph_definition", answer: "a" });
+    await store.submitAnswer("e001_graph_definition", "a");  // retry: same key, same answer
+    expect(mockEndpoints.answer).toHaveBeenLastCalledWith(1, "e001_graph_definition", "a", "key-1");
+    expect(store.lastSubmission).toBeNull();
+  });
+
+  it("C8 clears the retained submission on stale adoption (never resubmits)", async () => {
+    const stale = new ApiClientError(409, "STALE_ACTIVITY",
+      "This activity is no longer current.", false, { turn: advancedTurn });
+    mockEndpoints.answer.mockRejectedValue(stale);
+    const store = useSessionStore();
+    store.session = sessionInfo;
+    await store.submitAnswer("e001_graph_definition", "a");
+    expect(store.lastSubmission).toBeNull();
+    expect(mockEndpoints.answer).toHaveBeenCalledTimes(1);
+  });
+
+  it("C8 clears the retained submission on non-retryable errors", async () => {
+    mockEndpoints.answer.mockRejectedValue(
+      new ApiClientError(400, "VALIDATION_ERROR", "bad request", false));
+    const store = useSessionStore();
+    store.session = sessionInfo;
+    await expect(store.submitAnswer("e001_graph_definition", "a")).rejects.toThrow();
+    expect(store.lastSubmission).toBeNull();
+  });
+
+  it("C8 a successful authoritative load clears the stale-adopted recovery state", async () => {
+    const ui = useUiStore();
+    ui.markStaleAdopted();
+    expect(ui.staleAdopted).toBe(true);
+    mockEndpoints.getSessionSnapshot.mockResolvedValue({
+      session: sessionInfo, turn: advancedTurn,
+      plan: { items: [], mastered: 1, pace_budget: "normal", questions: 2,
+              remaining_minutes: 24, theory_blocks: 1, total_skills: 38, units: 4 },
+    });
+    const store = useSessionStore();
+    await store.loadSnapshot(1);
+    expect(ui.staleAdopted).toBe(false);
+  });
+
+  it("C8 a successful resume clears the stale-adopted recovery state", async () => {
+    const ui = useUiStore();
+    ui.markStaleAdopted();
+    mockEndpoints.resumeSession.mockResolvedValue({
+      turn: advancedTurn, session: sessionInfo, resumed: true });
+    const store = useSessionStore();
+    await store.resume(1);
+    expect(ui.staleAdopted).toBe(false);
+  });
+
   it("never locally invents pedagogical state (raw target is the server object)", async () => {
     mockEndpoints.answer.mockResolvedValue({ turn: advancedTurn, result: advancedTurn.result! });
     const store = useSessionStore();
