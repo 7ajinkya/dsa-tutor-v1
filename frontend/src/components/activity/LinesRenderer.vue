@@ -23,6 +23,7 @@ const answer = ref("");
       v-model="answer"
       name="answer"
       rows="4"
+      aria-label="Your answer, one output line per row"
       placeholder="Enter one output line per row."
       :disabled="busy"
     />

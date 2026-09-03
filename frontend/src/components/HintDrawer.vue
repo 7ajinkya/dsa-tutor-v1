@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, hasInjectionContext, inject, ref, watch } from "vue";
+import { computed, hasInjectionContext, inject, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { piniaSymbol } from "pinia";
 import type { Activity } from "../api/types";
 import { useSessionStore } from "../stores/session";
@@ -66,6 +66,31 @@ function closeDrawer(): void {
   isOpen.value = false;
 }
 
+/** C9: Escape dismisses the open drawer (no keyboard trap); focus returns to
+ *  the toggle so keyboard users keep their place. */
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key === "Escape" && isOpen.value) {
+    event.stopPropagation();
+    closeDrawer();
+  }
+}
+
+watch(isOpen, async (open) => {
+  if (open) {
+    window.addEventListener("keydown", onKeydown);
+    await nextTick();
+    document.querySelector<HTMLElement>(".hint-close-btn")?.focus();
+  } else {
+    window.removeEventListener("keydown", onKeydown);
+    await nextTick();
+    document.querySelector<HTMLElement>(".hint-toggle-btn")?.focus();
+  }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onKeydown);
+});
+
 function onRevealCta(): void {
   emit("reveal");
 }
@@ -111,6 +136,7 @@ defineExpose({
     <div
       v-if="isOpen"
       class="hint-drawer-backdrop"
+      aria-hidden="true"
       @click="closeDrawer"
     />
 
@@ -134,7 +160,7 @@ defineExpose({
           type="button"
           class="hint-close-btn"
           aria-label="Close hints"
-          @click="closeDrawer"
+          @click="closeDrawer()"
         >
           ✕
         </button>

@@ -16,7 +16,10 @@ function onRevealCta(): void {
 </script>
 
 <template>
-  <article class="activity-card">
+  <article
+    class="activity-card"
+    :aria-busy="busy ? 'true' : undefined"
+  >
     <div class="activity-meta">
       <span class="activity-mode">{{ activity.mode }}</span>
       <span
@@ -47,6 +50,10 @@ function onRevealCta(): void {
       >
         {{ error }}
       </p>
+      <div
+        v-else
+        aria-live="polite"
+      />
       <div class="activity-actions">
         <button
           v-if="activity.available_actions.includes('answer')"

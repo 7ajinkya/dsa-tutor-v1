@@ -19,6 +19,7 @@ const answer = ref("");
       v-model="answer"
       name="answer"
       rows="5"
+      aria-label="Your answer"
       placeholder="Explain your reasoning in your own words."
       :disabled="busy"
     />

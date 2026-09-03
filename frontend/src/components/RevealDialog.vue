@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, hasInjectionContext, inject, ref, watch } from "vue";
+import { computed, hasInjectionContext, inject, nextTick, onBeforeUnmount, ref, watch } from "vue";
 import { piniaSymbol } from "pinia";
 import type { Activity } from "../api/types";
 import { useSessionStore } from "../stores/session";
@@ -51,6 +51,30 @@ watch(() => props.activity.id, () => {
   revealError.value = null;
 });
 
+/** C9: Escape cancels the open confirmation dialog (no keyboard trap). */
+function onKeydown(event: KeyboardEvent): void {
+  if (event.key === "Escape" && uiStore?.confirmDialog) {
+    event.stopPropagation();
+    uiStore.resolveConfirm(false);
+  }
+}
+
+watch(() => uiStore?.confirmDialog ?? null, async (dialog) => {
+  if (dialog !== null) {
+    window.addEventListener("keydown", onKeydown);
+    await nextTick();
+    document.querySelector<HTMLElement>(".confirm-reject-btn")?.focus();
+  } else {
+    window.removeEventListener("keydown", onKeydown);
+    await nextTick();
+    document.querySelector<HTMLElement>(".reveal-trigger-btn")?.focus();
+  }
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", onKeydown);
+});
+
 defineExpose({
   triggerReveal,
 });
@@ -76,12 +100,16 @@ defineExpose({
       role="dialog"
       aria-modal="true"
       aria-labelledby="confirm-dialog-title"
+      aria-describedby="confirm-dialog-message"
     >
       <div class="confirm-modal-card">
         <h3 id="confirm-dialog-title">
           {{ uiStore.confirmDialog.title }}
         </h3>
-        <p class="confirm-modal-message">
+        <p
+          id="confirm-dialog-message"
+          class="confirm-modal-message"
+        >
           {{ uiStore.confirmDialog.message }}
         </p>
         <div class="confirm-modal-actions">

@@ -40,6 +40,7 @@ onMounted(() => { void loadProgress(); });
     <div
       v-if="learner.progressLoading && progress === null"
       class="progress-list"
+      role="status"
       aria-label="Loading progress"
     >
       <div
@@ -83,9 +84,9 @@ onMounted(() => { void loadProgress(); });
         class="orientation-card"
         aria-label="How to use progress"
       >
-        <div><strong>Why you’re here</strong><span>Review the evidence behind each skill state.</span></div>
-        <div><strong>What to do now</strong><span>Choose a module or return home to continue.</span></div>
-        <div><strong>What happens next</strong><span>The engine chooses future work from your recorded evidence.</span></div>
+        <div><h2>Why you’re here</h2><span>Review the evidence behind each skill state.</span></div>
+        <div><h2>What to do now</h2><span>Choose a module or return home to continue.</span></div>
+        <div><h2>What happens next</h2><span>The engine chooses future work from your recorded evidence.</span></div>
       </section>
 
       <div
@@ -105,10 +106,12 @@ onMounted(() => { void loadProgress(); });
       <template v-else>
         <div
           class="module-tabs"
+          role="group"
           aria-label="Filter progress by module"
         >
           <button
             type="button"
+            :aria-pressed="selectedModule === null ? 'true' : 'false'"
             :class="{ selected: selectedModule === null }"
             @click="selectedModule = null"
           >
@@ -118,6 +121,7 @@ onMounted(() => { void loadProgress(); });
             v-for="module in modules"
             :key="module"
             type="button"
+            :aria-pressed="selectedModule === module ? 'true' : 'false'"
             :class="{ selected: selectedModule === module }"
             @click="selectedModule = module"
           >
@@ -133,6 +137,7 @@ onMounted(() => { void loadProgress(); });
             v-for="row in rows"
             :key="row.skill"
             class="progress-row"
+            :aria-label="`${row.title}: ${row.state.replaceAll('_', ' ')}`"
           >
             <div>
               <p class="row-module">

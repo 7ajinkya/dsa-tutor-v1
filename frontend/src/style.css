@@ -53,7 +53,7 @@ button:disabled { cursor: wait; opacity: 0.65; }
 .skeleton-card { min-height: 190px; }.skeleton-row { height: 82px; margin-bottom: 0.65rem; }
 @keyframes pulse { to { opacity: 0.5; } }
 .orientation-card { display: grid; gap: 1rem; grid-template-columns: repeat(3, 1fr); margin-bottom: 1rem; }
-.orientation-card div { display: grid; gap: 0.25rem; }.orientation-card span, .filter-summary, .row-module { color: #50555c; }
+.orientation-card div { display: grid; gap: 0.25rem; }.orientation-card h2 { font-size: 1rem; margin: 0; }.orientation-card span, .filter-summary, .row-module { color: #50555c; }
 .empty-card { max-width: 650px; }.module-tabs { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; }
 .module-tabs button { background: #e6f3f5; color: #164e63; }.module-tabs button.selected { background: #155e75; color: #fff; }
 .progress-list { display: grid; gap: 0.65rem; }.progress-row { align-items: center; border: 1px solid #d6dce0; border-radius: 0.55rem; display: grid; gap: 1rem; grid-template-columns: minmax(220px, 1fr) auto auto; padding: 0.9rem 1rem; }
@@ -124,4 +124,22 @@ button:disabled { cursor: wait; opacity: 0.65; }
 
 @media (max-width: 768px) {
   .hint-drawer { top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-height: 80vh; border-radius: 16px 16px 0 0; }
+}
+
+/* C9: visible keyboard focus everywhere (plan A19 accessibility pass). */
+:focus-visible { outline: 3px solid #2a8495; outline-offset: 2px; }
+
+/* C9: mobile refinements (plan A19: 44px touch targets, stacked rows, wrapped text). */
+@media (max-width: 768px) {
+  .button-link, .module-tabs button, .error-banner button, .activity-actions button, .explain-trigger-btn, .explain-close-btn, .hint-close-btn, .reveal-trigger-btn { min-height: 44px; }
+  .choice-list input[type="radio"] { height: 1.15rem; width: 1.15rem; accent-color: #155e75; }
+  .plan-list li { align-items: start; flex-direction: column; gap: 0.15rem; }
+  .plan-list span { white-space: normal; }
+  .progress-row { grid-template-columns: 1fr; gap: 0.45rem; }
+  .progress-row > p { white-space: normal; }
+  .result-facts { gap: 0.4rem 1rem; }
+  .error-banner { flex-direction: column; align-items: start; }
+  .toast-host { left: 1rem; right: 1rem; }
+  .toast { max-width: none; }
+  .code-block, .solution-content { max-height: 240px; }
 }

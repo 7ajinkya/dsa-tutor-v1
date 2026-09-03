@@ -26,6 +26,7 @@ const answer = ref(props.activity.starter ?? "");
       name="answer"
       rows="10"
       class="code-editor"
+      :aria-label="activity.function_name ? `Code for function ${activity.function_name}` : 'Your code answer'"
       :placeholder="activity.starter ?? 'Write your code here.'"
       :disabled="busy"
     />

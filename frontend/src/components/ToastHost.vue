@@ -17,6 +17,7 @@ const ui = useUiStore();
       :key="toast.id"
       class="toast"
       :class="`toast-${toast.kind}`"
+      :role="toast.kind === 'error' || toast.kind === 'warning' ? 'alert' : 'status'"
     >
       <span>{{ toast.text }}</span>
       <button

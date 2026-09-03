@@ -41,4 +41,23 @@ import ToastHost from "./components/ToastHost.vue";
 .app-main {
   padding: 1rem;
 }
+.app-nav a {
+  padding: 0.35rem 0.5rem;
+}
+/* C9: header wraps and nav stays tappable on narrow screens. */
+@media (max-width: 768px) {
+  .app-header {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 0.4rem;
+    padding: 0.65rem 1rem;
+  }
+  .app-nav {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+  .app-main {
+    padding: 0.75rem 0.75rem 2rem;
+  }
+}
 </style>
