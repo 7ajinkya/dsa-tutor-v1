@@ -47,6 +47,9 @@ EXAMPLES = {
     "traversal_boundary": "Graph: A-B-C and D-E-F (two triangles, no connection between them). BFS from A visits A,B,C and the queue empties. The visited set {A,B,C} is exactly one component. D,E,F are untouched — they are in a different component, not a failure of BFS.",
     "component_discovery": "After BFS from A gives visited={A,B,C}, you scan for unvisited vertices and find D. This is the signal: start a new BFS from D. It will visit exactly D's component. The unvisited vertex is not an error — it is the starting point for the next component.",
     "component_enumeration": "Graph with 3 components: {0,1,2}, {3,4}, {5}. Outer loop: start=0 runs BFS→visited={0,1,2}, count=1. start=1,2 skipped. start=3 runs BFS→visited={0,1,2,3,4}, count=2. start=4 skipped. start=5 runs BFS→visited={0,1,2,3,4,5}, count=3. Total work O(V+E) — each vertex/edge processed once.",
+    # Layer 2 examples
+    "bfs_distance": "graph = [[1,2],[3],[3,4],[5],[5],[]], BFS from 0. Waves: {0} → {1,2} → {3,4} → {5}. The distance array records exactly the wave numbers: distance = [0,1,1,2,2,3]. Run the same BFS on [[1],[0,2],[1],[4],[3],[]] from 0 and vertices 3,4,5 keep -1: unreachable, because their component is never discovered.",
+    "path_reconstruction": "The same BFS from 0 also records who discovered whom: parent = [-1,0,0,1,2,3]. For the route to 5, walk backward: 5 ← 3 ← 1 ← 0, then reverse → [0,1,3,5]. One BFS produced both the distance (3 edges) and the actual path — O(V+E) plus at most O(V) for the walk.",
 }
 
 PITFALLS = {
@@ -92,4 +95,7 @@ PITFALLS = {
     "traversal_boundary": "The traversal stopping does not mean it failed — it means the component is done. Unvisited vertices are in other components, not a bug.",
     "component_discovery": "An unvisited vertex after traversal does not mean 'BFS missed it'. It means 'this vertex is in another component — start a new traversal here'.",
     "component_enumeration": "The outer loop runs for every vertex, but the inner BFS runs only for unvisited ones. Thinking it runs V times BFS = O(V(V+E)) is the classic mistake. The visited set guarantees each vertex is processed once total.",
+    # Layer 2 pitfalls
+    "bfs_distance": "Shortest means fewest EDGES, not fewest vertices — and the guarantee holds only for unweighted graphs. Also, visited and distance are NOT the same information: -1 just happens to double as 'not discovered' in our distance-array convention.",
+    "path_reconstruction": "Parents are set at FIRST discovery and never overwritten — chasing overwrites is impossible, but expecting BFS to return ALL shortest paths is the classic trap: it returns one valid path, chosen by adjacency order. And don't forget to reverse: the backward walk produces the path in reverse.",
 }

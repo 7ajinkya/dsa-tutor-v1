@@ -118,6 +118,71 @@ OWN_CODE = {
         "        cid += 1\n"
         "    return comp\n"
     ),
+    # Layer 2 learner implementations
+    "bfs_distances": (
+        "from collections import deque\n\n"
+        "def bfs_distances(graph, start):\n"
+        "    step = {start: 0}\n"
+        "    todo = deque([start])\n"
+        "    while todo:\n"
+        "        v = todo.popleft()\n"
+        "        for w in graph[v]:\n"
+        "            if w not in step:\n"
+        "                step[w] = step[v] + 1\n"
+        "                todo.append(w)\n"
+        "    return [step.get(i, -1) for i in range(len(graph))]\n"
+    ),
+    "bfs_distances_completed": (
+        "from collections import deque\n\n"
+        "def bfs_distances_completed(graph, start):\n"
+        "    n = len(graph)\n"
+        "    distance = [-1] * n\n"
+        "    distance[start] = 0\n"
+        "    queue = deque([start])\n"
+        "    while queue:\n"
+        "        v = queue.popleft()\n"
+        "        for nxt in graph[v]:\n"
+        "            if distance[nxt] == -1:\n"
+        "                distance[nxt] = 1 + distance[v]\n"
+        "                queue.append(nxt)\n"
+        "    return distance\n"
+    ),
+    "reconstruct_path_completed": (
+        "def reconstruct_path_completed(parent, source, target):\n"
+        "    if target != source and parent[target] == -1:\n"
+        "        return []\n"
+        "    path = []\n"
+        "    v = target\n"
+        "    while True:\n"
+        "        path.append(v)\n"
+        "        if source == v:\n"
+        "            break\n"
+        "        v = parent[v]\n"
+        "    path.reverse()\n"
+        "    return path\n"
+    ),
+    "shortest_path": (
+        "from collections import deque\n\n"
+        "def shortest_path(graph, source, target):\n"
+        "    if source == target:\n"
+        "        return [source]\n"
+        "    prev = {source: None}\n"
+        "    todo = deque([source])\n"
+        "    while todo:\n"
+        "        v = todo.popleft()\n"
+        "        for w in graph[v]:\n"
+        "            if w not in prev:\n"
+        "                prev[w] = v\n"
+        "                todo.append(w)\n"
+        "    if target not in prev:\n"
+        "        return []\n"
+        "    out = []\n"
+        "    v = target\n"
+        "    while v is not None:\n"
+        "        out.append(v)\n"
+        "        v = prev[v]\n"
+        "    return out[::-1]\n"
+    ),
 }
 
 
@@ -341,7 +406,7 @@ def test_v0_progression_completes_past_first_problem_activity(service):
         if v.kind == "exercise":
             reached.append((v.exercise.skill_id, v.exercise.interaction_type.value))
 
-    view, _ = drive(service, view, max_turns=220, on_turn=track)
+    view, _ = drive(service, view, max_turns=320, on_turn=track)
     assert view.kind == "ended"
     skills_seen = [s for s, _ in reached]
     assert "bfs_implementation" in skills_seen

@@ -87,6 +87,14 @@ SKILLS = [
     # component_enumeration: repeat traversal from unvisited vertices to enumerate all components
     _skill("component_enumeration", "Component enumeration", 49, "Module F - Integration & Application",
            (3, 4, 4, 4), {E, R, T}),
+
+    # --- Layer 2: Unweighted Shortest Paths → Path Reconstruction (Graph Slice A) ---
+    # bfs_distance: BFS levels ARE distances; a distance array with -1 = unreachable
+    _skill("bfs_distance", "BFS distance", 50, "Module F - Integration & Application",
+           (3, 3, 4, 3), {K, E, R}),
+    # path_reconstruction: parent/predecessor tracking → rebuild the actual shortest path
+    _skill("path_reconstruction", "Path reconstruction", 51, "Module F - Integration & Application",
+           (3, 4, 4, 4), {E, R, T}),
 ]
 
 PREREQS = [
@@ -167,6 +175,16 @@ PREREQS = [
     SkillPrerequisite("component_enumeration", "component_discovery", PS.CORE),
     SkillPrerequisite("component_enumeration", "bfs_implementation", PS.CORE),
     SkillPrerequisite("component_enumeration", "dfs_implementation", PS.CORE),
+
+    # --- Layer 2: Unweighted Shortest Paths → Path Reconstruction ---
+    SkillPrerequisite("bfs_distance", "bfs_intuition", PS.CORE),
+    SkillPrerequisite("bfs_distance", "bfs_implementation", PS.CORE),
+    SkillPrerequisite("bfs_distance", "visited_state", PS.CORE),
+    SkillPrerequisite("bfs_distance", "bfs_manual_tracing", PS.SUPPORTING),
+    SkillPrerequisite("bfs_distance", "connectedness", PS.SUPPORTING),
+    SkillPrerequisite("path_reconstruction", "bfs_distance", PS.CORE),
+    SkillPrerequisite("path_reconstruction", "bfs_implementation", PS.CORE),
+    SkillPrerequisite("path_reconstruction", "bfs_manual_tracing", PS.SUPPORTING),
 ]
 
 # ------------------------------------------------------------- theory ----
@@ -400,6 +418,38 @@ THEORY = {
         "at most a constant number of times across all traversals, the total time is O(V+E), not "
         "O(V(V+E)). The visited set guarantees no vertex is processed twice, even though multiple "
         "traversals run in sequence."
+    ),
+
+    # --- Layer 2 theory ---
+    "bfs_distance": (
+        "BFS levels are not just an ordering — they ARE distances. The source sits at distance 0, "
+        "every immediate neighbor at distance 1, their unvisited neighbors at distance 2, and so on: "
+        "each wave of the ripple is exactly one more edge. So instead of a separate visited set you "
+        "can keep a distance array: distance[v] = -1 means 'not discovered yet' (which doubles as "
+        "the visited check), the source gets 0, and every newly discovered neighbor gets "
+        "distance[current] + 1. Why is the FIRST discovery the minimum? BFS dequeues vertices in "
+        "nondecreasing distance order, so when a vertex is first discovered, it was reached from a "
+        "vertex already at the minimum possible distance — no shorter route can appear later. This "
+        "is why, in an unweighted graph, BFS finds the fewest-edges route. Two cautions: shortest "
+        "means fewest EDGES (not fewest vertices, not smallest weight), and this guarantee holds "
+        "only for unweighted graphs. Vertices that never get a distance keep -1: they are "
+        "unreachable from the source — exactly the other-component situation from connected "
+        "components, now recorded as a number instead of a missing visited entry."
+    ),
+    "path_reconstruction": (
+        "A distance tells you HOW FAR a vertex is; it does not tell you HOW to get there. For the "
+        "actual route, add one more piece of state during the same BFS: a parent array. Every time "
+        "a vertex is first discovered, it remembers WHO discovered it: parent[neighbor] = current. "
+        "Mentally: every vertex remembers who first brought it into the BFS tree. Parents form a "
+        "tree rooted at the source, and following parents from any vertex walks backward along a "
+        "shortest path. To reconstruct the route from source to target: start at target, collect "
+        "vertices by following parent pointers until you reach the source, then REVERSE the "
+        "collected sequence — you walked backward, so the path comes out backward. Edge cases: if "
+        "source == target the path is just [source]; if the target was never discovered (parent "
+        "stays -1 / distance stays -1) no path exists and you return an empty path. If several "
+        "shortest paths exist, BFS returns ONE valid shortest path — the one its discovery order "
+        "happened to build — not all of them. The whole routine is still one BFS: O(V+E) to fill "
+        "distance and parent, plus at most O(V) to walk the path backward."
     ),
 }
 
@@ -684,6 +734,16 @@ _mcq_bank("component_enumeration", "The outer loop `for v in range(n): if not vi
            ("c", "BFS is O(1) per vertex"),
            ("d", "It is actually O(V(V+E))")], "b",
           "Each vertex enters the queue at most once total; each edge is examined at most twice total.", (3, 4, 4, 4))
+
+# Layer 2 MCQ banks
+_mcq_bank("bfs_distance", "In BFS from A on an unweighted graph, vertex X is discovered while C is "
+          "being processed and distance[C] = 2. What is distance[X]?",
+          [("a", "1"), ("b", "2"), ("c", "3"), ("d", "It cannot be determined")], "c",
+          "A newly discovered neighbor gets distance[current] + 1 = 3; BFS discovers in nondecreasing distance order, so this first value is already minimal.", (3, 3, 4, 3))
+_mcq_bank("path_reconstruction", "parent = {B: A, C: A, D: B, E: C, F: D}, parent[A] = -1. Following parents "
+          "back from F and reversing, what is the path A→F?",
+          [("a", "A B D F"), ("b", "F D B A"), ("c", "A C E F"), ("d", "A B C D F")], "a",
+          "Walking parents from F gives F, D, B, A; reversing yields A B D F — the discovery tree's route.", (3, 4, 4, 4))
 
 _mcq_bank("adjacency", "Two vertices are adjacent when...",
           [("a", "An edge connects them directly"),
@@ -1301,6 +1361,310 @@ def _build_practice():
                _h("light_hint", "Three groups: Alice-Bob-Carol, Dave-Eve, Frank alone."),
                _h("targeted_explanation", "Model people as vertices, friendships as edges. Run traversal from Alice → visits {Alice,Bob,Carol}. Next unvisited is Dave → visits {Dave,Eve}. Next unvisited is Frank → visits {Frank}. Count = 3.")])
 
+    # --- Layer 2: bfs_distance ---
+    uid = _unit("bfs_distance", "BFS distance — practice",
+                "Track distances during BFS and read unreachable as -1",
+                UnitType.PRACTICE, dims={K, E, R})
+    _ex(uid, "bfs_distance", InteractionType.OUTPUT_PREDICTION,
+        "What does this code print?\n\n"
+        "graph = [[1, 2], [3], [3, 4], [5], [5], []]\n"
+        "distance = [-1] * 6\n"
+        "distance[0] = 0\n"
+        "from collections import deque\n"
+        "queue = deque([0])\n"
+        "while queue:\n"
+        "    v = queue.popleft()\n"
+        "    for nxt in graph[v]:\n"
+        "        if distance[nxt] == -1:\n"
+        "            distance[nxt] = distance[v] + 1\n"
+        "            queue.append(nxt)\n"
+        "print(distance)",
+        {"code": "", "expected_output": "[0, 1, 1, 2, 2, 3]"},
+        d((3, 3, 3, 3)), ordering=1,
+        hints=[_h("socratic_question", "The source is wave 0. Which vertices are wave 1 — and which wave are 3 and 4 in?"),
+               _h("micro_question", "When vertex 3 is discovered, what is distance[3]'s current value, and what is distance[1] + 1?"),
+               _h("light_hint", "Vertex 5 is first discovered from vertex 3, which has distance 2."),
+               _h("targeted_explanation", "Waves: {0} | {1,2} | {3,4} | {5} → distance = [0, 1, 1, 2, 2, 3]. Vertex 5 gets distance[3] + 1 = 3.")])
+    _ex(uid, "bfs_distance", InteractionType.MCQ,
+        "From A, two routes reach T: A → B → D → T (3 edges) and A → C → E → F → T (4 edges). "
+        "When BFS from A discovers T via the first route, what distance does T get — and could a "
+        "later discovery have been shorter?",
+        *_mcq("", [("a", "3 — and no: BFS discovers vertices in nondecreasing distance order, so the first discovery is minimal"),
+                  ("b", "3 — but a later discovery might have found a shorter route"),
+                  ("c", "4 — BFS records the longest route"),
+                  ("d", "7 — distances add up across all routes")], "a",
+             "BFS processes vertices wave by wave; when T is first discovered from a distance-2 vertex, no shorter route could exist yet — the first discovery is final.", (3, 2, 4, 3)), ordering=2,
+        hints=[_h("socratic_question", "In what order does BFS dequeue vertices — by distance, or arbitrarily?"),
+               _h("micro_question", "T is discovered while processing a distance-2 vertex. Could a distance-1 vertex still discover it later?"),
+               _h("light_hint", "Neighbors of distance-2 vertices get distance 3 at first discovery."),
+               _h("targeted_explanation", "First discovery happens from the closest possible frontier, so distance[T] = 3 immediately — and it is final. 'Shortest' means fewest edges, and BFS achieves that at first discovery.")])
+    _ex(uid, "bfs_distance", InteractionType.CODE_TRACING,
+        "This BFS computes distances on a disconnected graph. What does it print?\n\n"
+        "graph = [[1], [0, 2], [1], [4], [3], []]\n"
+        "distance = [-1] * 6\n"
+        "distance[0] = 0\n"
+        "from collections import deque\n"
+        "queue = deque([0])\n"
+        "while queue:\n"
+        "    v = queue.popleft()\n"
+        "    for nxt in graph[v]:\n"
+        "        if distance[nxt] == -1:\n"
+        "            distance[nxt] = distance[v] + 1\n"
+        "            queue.append(nxt)\n"
+        'print(distance[2], distance[5])',
+        {"code": "", "expected_output": "2 -1"},
+        d((3, 3, 4, 3)), ordering=3,
+        hints=[_h("socratic_question", "Which vertices can be reached from 0 at all?"),
+               _h("micro_question", "Vertex 5 has no edges. Does anything ever set distance[5] away from -1?"),
+               _h("light_hint", "Components {0,1,2} and {3,4} and {5}: only 0's component gets finite distances."),
+               _h("targeted_explanation", "From 0: distance = [0,1,2,-1,-1,-1]. Vertex 2 is at distance 2; vertex 5 is unreachable and keeps -1 — our convention for 'no path exists'.")])
+    _ex(uid, "bfs_distance", InteractionType.CODE_WRITING,
+        "Complete the distance-tracking BFS below: fill in the two marked lines so that `distance` "
+        "holds, for every vertex, its distance from `start`, with -1 for vertices BFS never reaches. "
+        "Do not change anything else.",
+        {"function_name": "bfs_distances_completed",
+         "starter": ("from collections import deque\n\n"
+                     "def bfs_distances_completed(graph, start):\n"
+                     "    n = len(graph)\n"
+                     "    distance = [-1] * n\n"
+                     "    distance[start] = 0\n"
+                     "    queue = deque([start])\n"
+                     "    while queue:\n"
+                     "        v = queue.popleft()\n"
+                     "        for nxt in graph[v]:\n"
+                     "            if distance[nxt] == -1:\n"
+                     "                # line 1: record the distance of nxt\n"
+                     "                # line 2: put nxt on the queue\n"
+                     "                pass\n"
+                     "    return distance\n"),
+         "tests": [{"graph": [[1, 2], [3], [3, 4], [5], [5], []], "start": 0,
+                    "expected": [0, 1, 1, 2, 2, 3]},
+                   {"graph": [[1], [0, 2], [1], [4], [3], []], "start": 0,
+                    "expected": [0, 1, 2, -1, -1, -1]},
+                   {"graph": [[]], "start": 0, "expected": [0]}],
+         "solution": ("from collections import deque\n\n"
+                      "def bfs_distances_completed(graph, start):\n"
+                      "    n = len(graph)\n"
+                      "    distance = [-1] * n\n"
+                      "    distance[start] = 0\n"
+                      "    queue = deque([start])\n"
+                      "    while queue:\n"
+                      "        v = queue.popleft()\n"
+                      "        for nxt in graph[v]:\n"
+                      "            if distance[nxt] == -1:\n"
+                      "                distance[nxt] = distance[v] + 1\n"
+                      "                queue.append(nxt)\n"
+                      "    return distance\n")},
+        d((3, 3, 3, 3)), language="python", ordering=4,
+        hints=[_h("socratic_question", "The new vertex's distance is one more than whose distance?"),
+               _h("micro_question", "What role does the `distance[nxt] == -1` check play — is a separate visited set still needed?"),
+               _h("light_hint", "Line 1: distance[nxt] = distance[v] + 1. Line 2: queue.append(nxt)."),
+               _h("targeted_explanation", "Inside the -1 check: distance[nxt] = distance[v] + 1, then queue.append(nxt). The -1 check IS the visited check.")])
+    _ex(uid, "bfs_distance", InteractionType.CODE_WRITING,
+        "Write `bfs_distances(graph, start)` that runs BFS from `start` and returns a list `distance` "
+        "with one entry per vertex: the minimum number of edges from `start`, or -1 if the vertex is "
+        "unreachable. graph is an adjacency list of integer vertices.",
+        {"function_name": "bfs_distances",
+         "starter": "from collections import deque\n\ndef bfs_distances(graph, start):\n    # your code here\n",
+         "tests": [{"graph": [[1, 2], [3], [3, 4], [5], [5], []], "start": 0,
+                    "expected": [0, 1, 1, 2, 2, 3]},
+                   {"graph": [[1], [0, 2], [1], [4], [3], []], "start": 0,
+                    "expected": [0, 1, 2, -1, -1, -1]},
+                   {"graph": [[1], [0], [3], [2]], "start": 2,
+                    "expected": [-1, -1, 0, 1]},
+                   {"graph": [[]], "start": 0, "expected": [0]}],
+         "solution": ("from collections import deque\n\n"
+                      "def bfs_distances(graph, start):\n"
+                      "    n = len(graph)\n"
+                      "    distance = [-1] * n\n"
+                      "    distance[start] = 0\n"
+                      "    queue = deque([start])\n"
+                      "    while queue:\n"
+                      "        v = queue.popleft()\n"
+                      "        for nxt in graph[v]:\n"
+                      "            if distance[nxt] == -1:\n"
+                      "                distance[nxt] = distance[v] + 1\n"
+                      "                queue.append(nxt)\n"
+                      "    return distance\n")},
+        d((3, 4, 4, 3)), language="python", ordering=5,
+        hints=[_h("socratic_question", "What does distance[v] == -1 mean before a vertex is discovered — and how does that replace the visited set?"),
+               _h("micro_question", "What must be true about the vertex you just dequeued when you assign a neighbor's distance?"),
+               _h("light_hint", "Seed distance[start] = 0; every newly discovered neighbor gets distance[v] + 1."),
+               _h("targeted_explanation", "distance = [-1]*n; distance[start] = 0; BFS with the distance array as the visited check: distance[nxt] = distance[v] + 1 on discovery. Vertices never discovered keep -1.")])
+
+    # --- Layer 2: path_reconstruction ---
+    uid = _unit("path_reconstruction", "Path reconstruction — practice",
+                "Track parents during BFS and rebuild the actual shortest path",
+                UnitType.PRACTICE, dims={K, E, R})
+    _ex(uid, "path_reconstruction", InteractionType.OUTPUT_PREDICTION,
+        "What does this code print?\n\n"
+        "graph = [[1, 2], [3], [3, 4], [5], [5], []]\n"
+        "parent = [-1] * 6\n"
+        "from collections import deque\n"
+        "queue = deque([0])\n"
+        "seen = {0}\n"
+        "while queue:\n"
+        "    v = queue.popleft()\n"
+        "    for nxt in graph[v]:\n"
+        "        if nxt not in seen:\n"
+        "            seen.add(nxt)\n"
+        "            parent[nxt] = v\n"
+        "            queue.append(nxt)\n"
+        "print(parent)",
+        {"code": "", "expected_output": "[-1, 0, 0, 1, 2, 3]"},
+        d((3, 3, 3, 3)), ordering=1,
+        hints=[_h("socratic_question", "Who discovers vertex 3 first — 1 or 2, and why?"),
+               _h("micro_question", "Vertex 1 is dequeued before vertex 2, so whose loop iteration sets parent[3]?"),
+               _h("light_hint", "Each vertex's parent is the vertex that first enqueued it."),
+               _h("targeted_explanation", "1 and 2 are discovered by 0; 3 is discovered by 1 (dequeued first), 4 by 2, 5 by 3 → parent = [-1, 0, 0, 1, 2, 3].")])
+    _ex(uid, "path_reconstruction", InteractionType.MCQ,
+        "graph = [[1, 2], [3], [3, 4], [5], [5], []], BFS from 0 with parent tracking. "
+        "Which path does BFS's parent tree give for 0 → 5?",
+        *_mcq("", [("a", "0 → 1 → 3 → 5"),
+                  ("b", "0 → 2 → 4 → 5 — equally short, so BFS must return both"),
+                  ("c", "0 → 2 → 3 → 5"),
+                  ("d", "No path exists from 0 to 5")], "a",
+             "Vertex 5 is first discovered from 3, and 3 from 1: the parent tree stores ONE valid shortest path (0-2-4-5 is equally short but was not the discovery route).", (3, 3, 4, 3)), ordering=2,
+        hints=[_h("socratic_question", "Dequeue order is 0, 1, 2, 3, 4. When 3 is dequeued, who discovers 5?"),
+               _h("micro_question", "Does the parent of 5 ever get overwritten after it is first set?"),
+               _h("light_hint", "parent[5] = 3, parent[3] = 1, parent[1] = 0."),
+               _h("targeted_explanation", "Following parents from 5: 5 ← 3 ← 1 ← 0. The 0-2-4-5 route is also shortest, but BFS returns one valid shortest path — the discovery route.")])
+    _ex(uid, "path_reconstruction", InteractionType.CODE_TRACING,
+        "What does this code print?\n\n"
+        "def reconstruct(parent, target):\n"
+        "    path = []\n"
+        "    v = target\n"
+        "    while v != -1:\n"
+        "        path.append(v)\n"
+        "        v = parent[v]\n"
+        "    path.reverse()\n"
+        "    return path\n\n"
+        "parent = [-1, 0, 0, 1, 2, 3]\n"
+        "print(reconstruct(parent, 4))",
+        {"code": "", "expected_output": "[0, 2, 4]"},
+        d((3, 3, 4, 3)), ordering=3,
+        hints=[_h("socratic_question", "The walk starts at the target and follows parents — in which direction does the list grow?"),
+               _h("micro_question", "Before reverse(), what does path contain? Why is parent[0] = -1 the stopping point?"),
+               _h("light_hint", "Collect 4, 2, 0, then reverse."),
+               _h("targeted_explanation", "Backward walk collects [4, 2, 0]; reversing gives [0, 2, 4] — the forward path from the source.")])
+    _ex(uid, "path_reconstruction", InteractionType.CODE_WRITING,
+        "Complete `reconstruct_path_completed(parent, source, target)` below: fill in the two marked "
+        "lines of the backward walk so it returns the path from source to target as a list, or [] if "
+        "the target was never discovered (parent[target] == -1 with target != source). Do not change "
+        "anything else.",
+        {"function_name": "reconstruct_path_completed",
+         "starter": ("def reconstruct_path_completed(parent, source, target):\n"
+                     "    if target != source and parent[target] == -1:\n"
+                     "        return []\n"
+                     "    path = []\n"
+                     "    v = target\n"
+                     "    while True:\n"
+                     "        # line 1: add v to the path\n"
+                     "        # line 2: stop the walk when the source is reached\n"
+                     "        v = parent[v]\n"
+                     "    path.reverse()\n"
+                     "    return path\n"),
+         "tests": [{"args": ["parent", "source", "target"],
+                    "parent": [-1, 0, 0, 1, 2, 3], "source": 0, "target": 5,
+                    "expected": [0, 1, 3, 5]},
+                   {"args": ["parent", "source", "target"],
+                    "parent": [-1, 0, 0, 1, 2, 3], "source": 0, "target": 0,
+                    "expected": [0]},
+                   {"args": ["parent", "source", "target"],
+                    "parent": [-1, 0, -1, -1], "source": 0, "target": 3,
+                    "expected": []}],
+         "solution": ("def reconstruct_path_completed(parent, source, target):\n"
+                      "    if target != source and parent[target] == -1:\n"
+                      "        return []\n"
+                      "    path = []\n"
+                      "    v = target\n"
+                      "    while True:\n"
+                      "        path.append(v)\n"
+                      "        if v == source:\n"
+                      "            break\n"
+                      "        v = parent[v]\n"
+                      "    path.reverse()\n"
+                      "    return path\n")},
+        d((3, 3, 4, 3)), language="python", ordering=4,
+        hints=[_h("socratic_question", "The walk starts at the target — where must it stop for the reversed list to begin at the source?"),
+               _h("micro_question", "If you append v and only then check v == source, what happens on the source == target call?"),
+               _h("light_hint", "Line 1: path.append(v). Line 2: if v == source: break."),
+               _h("targeted_explanation", "Append v, break when v is the source, otherwise step to parent[v]; reversing the collected sequence yields the forward path. The early return [] handles the unreachable target.")])
+    _ex(uid, "path_reconstruction", InteractionType.CODE_WRITING,
+        "Write `shortest_path(graph, source, target)` for an unweighted graph: run ONE BFS from "
+        "`source` that also records parents, and return the shortest path from source to target as a "
+        "list of vertices. Return [] when no path exists; return [source] when source == target. "
+        "graph is an adjacency list of integer vertices.",
+        {"function_name": "shortest_path",
+         "starter": "from collections import deque\n\ndef shortest_path(graph, source, target):\n    # your code here\n",
+         "tests": [{"args": ["graph", "source", "target"],
+                    "graph": [[1, 2], [3], [3, 4], [5], [5], []],
+                    "source": 0, "target": 5, "expected": [0, 1, 3, 5]},
+                   {"args": ["graph", "source", "target"],
+                    "graph": [[1], [2], [3], []], "source": 0, "target": 3,
+                    "expected": [0, 1, 2, 3]},
+                   {"args": ["graph", "source", "target"],
+                    "graph": [[1], [0], [], []], "source": 0, "target": 3,
+                    "expected": []},
+                   {"args": ["graph", "source", "target"],
+                    "graph": [[1, 2], [0], [0]], "source": 1, "target": 1,
+                    "expected": [1]}],
+         "solution": ("from collections import deque\n\n"
+                      "def shortest_path(graph, source, target):\n"
+                      "    if source == target:\n"
+                      "        return [source]\n"
+                      "    n = len(graph)\n"
+                      "    parent = [-1] * n\n"
+                      "    parent[source] = source\n"
+                      "    queue = deque([source])\n"
+                      "    while queue:\n"
+                      "        v = queue.popleft()\n"
+                      "        for nxt in graph[v]:\n"
+                      "            if parent[nxt] == -1:\n"
+                      "                parent[nxt] = v\n"
+                      "                queue.append(nxt)\n"
+                      "    if parent[target] == -1:\n"
+                      "        return []\n"
+                      "    path = []\n"
+                      "    v = target\n"
+                      "    while v != source:\n"
+                      "        path.append(v)\n"
+                      "        v = parent[v]\n"
+                      "    path.append(source)\n"
+                      "    path.reverse()\n"
+                      "    return path\n")},
+        d((3, 4, 4, 4)), language="python", ordering=5,
+        hints=[_h("socratic_question", "Which single array can do double duty as 'visited' and 'who discovered me'?"),
+               _h("micro_question", "After the BFS ends, how do you detect that target was never discovered?"),
+               _h("light_hint", "Mark the source in parent (e.g. parent[source] = source); discover neighbors with parent[nxt] = v; walk back from target and reverse."),
+               _h("targeted_explanation", "parent = [-1]*n doubles as the visited check. BFS sets parent[nxt] = v at first discovery. If parent[target] stays -1 return []; otherwise follow parents back to source and reverse the collected vertices. Still one BFS: O(V+E), reconstruction at most O(V).")])
+
+    # --- Layer 2: path_reconstruction apply (transfer) ---
+    uid = _unit("path_reconstruction", "Path reconstruction — apply",
+                "Recognize a shortest-path situation in an unfamiliar context",
+                UnitType.APPLY, dims={T, R})
+    _ex(uid, "path_reconstruction", InteractionType.FREE_FORM,
+        "A professional network: connections are mutual, and 'one introduction' means one edge. "
+        "You must tell a user the minimum number of introductions between Priya and Marco AND the "
+        "actual chain of people connecting them. You were not told which algorithm to use. "
+        "Which traversal do you choose, what state do you track during it, and how do you get the "
+        "chain of people at the end?",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["bfs", "breadth"],
+             "text": "Chooses BFS without being told."},
+            {"id": "p2", "keywords": ["level", "layer", "distance", "fewest", "minimum", "unweighted", "first time", "first discovery"],
+             "text": "Justifies BFS: levels = fewest introductions because every connection costs one step."},
+            {"id": "p3", "keywords": ["parent", "predecessor", "who discovered", "remember", "track"],
+             "text": "Tracks parent/predecessor during the BFS."},
+            {"id": "p4", "keywords": ["reverse", "backward", "back from", "walk back", "follow parent"],
+             "text": "Reconstructs the chain by walking parents back from Marco and reversing."},
+         ], "min_points": 3},
+        d((3, 4, 4, 4)), requires_ai=True, ordering=6,
+        hints=[_h("socratic_question", "Does any connection 'cost' more than another — what does that tell you about the graph?"),
+               _h("micro_question", "Once BFS knows the distance to Marco, what extra per-vertex memory turns that number into an actual chain of names?"),
+               _h("light_hint", "Track who discovered each person; then walk backward from Marco to Priya and reverse the sequence."),
+               _h("targeted_explanation", "Unweighted graph + fewest edges → BFS. During the BFS record parent[person] = discoverer. Afterward walk parents from Marco back to Priya and reverse: the chain of people and its length both fall out of one BFS — still O(V+E).")])
+
 
 def _build_variations():
     """A second, differently-angled exercise for every skill that would otherwise repeat
@@ -1401,6 +1765,21 @@ def _build_variations():
                        ("c", "Because BFS is fast"),
                        ("d", "It is actually O(V(V+E))")], "b",
                   "Each vertex/edge is processed at most once total — visited set prevents re-processing.", (3, 4, 4, 4))),
+        # Layer 2 variations
+        "bfs_distance": (
+            "After a BFS run finishes, distance[v] is still -1. In OUR implementation, what does that mean?",
+            _mcq("", [("a", "v is at distance -1, one step before the source"),
+                       ("b", "v is unreachable from the start — our convention for 'no path exists' (not mathematical infinity)"),
+                       ("c", "The BFS had a bug — distances are never negative"),
+                       ("d", "v sits in the queue but has not been processed")], "b",
+                  "-1 is the chosen implementation convention: it doubles as 'not yet discovered' during the run and as 'unreachable' after it.", (3, 2, 4, 3))),
+        "path_reconstruction": (
+            "Two equally short routes from S to T exist, and adjacency order makes BFS discover T via the second one. What does BFS's parent array contain?",
+            _mcq("", [("a", "Both routes — BFS stores all shortest paths"),
+                       ("b", "One valid shortest path: the route along which T was first discovered"),
+                       ("c", "The longer route — parents record the last discovery"),
+                       ("d", "No route — equal distances cancel out")], "b",
+                  "First discovery fixes the parent permanently: BFS returns one valid shortest path, and adjacency order decides which one.", (3, 3, 4, 4))),
     }
     for skill_id, (prompt, (payload, difficulty)) in VARIATIONS.items():
         teach = [u for u in UNITS if u.skill_id == skill_id and u.unit_type == UnitType.TEACH]
@@ -1426,7 +1805,8 @@ def _apply_amendments():
             "explicit_stack_dfs"],
         "Module F - Integration & Application": ["bfs_vs_dfs", "recognizing_traversal",
             "traversal_application", "v0_readiness",
-            "traversal_boundary", "component_discovery", "component_enumeration"],
+            "traversal_boundary", "component_discovery", "component_enumeration",
+            "bfs_distance", "path_reconstruction"],
     }
     descriptions = {
         "graph_definition": "Understand a graph as a model of entities and relationships.",
@@ -1471,6 +1851,9 @@ def _apply_amendments():
         "traversal_boundary": "Understand that one traversal explores exactly one connected component.",
         "component_discovery": "Recognize that an unvisited vertex after traversal signals a new component.",
         "component_enumeration": "Implement the outer loop to count and label all connected components.",
+        # Layer 2 descriptions
+        "bfs_distance": "Read BFS levels as distances, track a distance array, and treat -1 as unreachable.",
+        "path_reconstruction": "Track parents during BFS and reconstruct the actual shortest path between two vertices.",
     }
     evidence = {
         "degree": {EvidenceType.RECOGNITION, EvidenceType.CONSTRUCTION},
@@ -1502,6 +1885,9 @@ def _apply_amendments():
         "traversal_boundary": {EvidenceType.RECOGNITION, EvidenceType.EXPLANATION},
         "component_discovery": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.EXPLANATION},
         "component_enumeration": {EvidenceType.RECOGNITION, EvidenceType.IMPLEMENTATION, EvidenceType.APPLICATION},
+        # Layer 2 evidence requirements
+        "bfs_distance": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.IMPLEMENTATION},
+        "path_reconstruction": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.IMPLEMENTATION},
     }
     module_order = list(modules.keys())
     skill_order = {sid: i for i, m in enumerate(module_order) for sid in modules[m]}
@@ -1527,18 +1913,25 @@ def _apply_amendments():
         ("traversal_application", InteractionType.CODE_WRITING): ActivityRole.APPLICATION,
         ("v0_readiness", InteractionType.CODE_WRITING): ActivityRole.APPLICATION,
         ("component_enumeration", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
+        ("path_reconstruction", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
     }
     problem_keys = {("bfs_implementation", InteractionType.CODE_WRITING),
                     ("dfs_implementation", InteractionType.CODE_WRITING),
                     ("traversal_application", InteractionType.CODE_WRITING),
                     ("v0_readiness", InteractionType.CODE_WRITING),
-                    ("component_enumeration", InteractionType.CODE_WRITING)}
+                    ("component_enumeration", InteractionType.CODE_WRITING),
+                    ("bfs_distance", InteractionType.CODE_WRITING),
+                    ("path_reconstruction", InteractionType.CODE_WRITING)}
     capabilities = {
         ("bfs_implementation", InteractionType.CODE_WRITING): {EvidenceType.TRACE, EvidenceType.RECOGNITION},
         ("dfs_implementation", InteractionType.CODE_WRITING): {EvidenceType.TRACE, EvidenceType.RECOGNITION},
         ("traversal_application", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.RECOGNITION},
         ("v0_readiness", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.EXPLANATION},
         ("component_enumeration", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.APPLICATION},
+        # IMPLEMENTATION is demonstrated by bfs_implementation's code-writing (prerequisite
+        # closure); TRACE by each skill's own tracing activities
+        ("bfs_distance", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
+        ("path_reconstruction", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
     }
     for e in EXERCISES:
         role = role_by_type[e.interaction_type]
