@@ -145,7 +145,7 @@ def test_progress_report_shape(service):
     view = service.start_session()
     service.submit_response(correct_answer_for(view.exercise) if view.kind == "exercise" else "a")
     report = service.progress_report()
-    assert len(report["skills"]) == 46
+    assert len(report["skills"]) == 50
     assert {"skill", "state", "evidence", "mastered", "module"} \
         <= set(report["skills"][0].keys())
     assert report["skills"][0]["state"] in {"NOT_SEEN", "INTRODUCED", "DEVELOPING",

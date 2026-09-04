@@ -109,6 +109,21 @@ SKILLS = [
     # BFS variant with (vertex, parent) queue entries, self-loops, O(V+E)
     _skill("undirected_cycle_detection", "Undirected cycle detection", 54,
            "Module F - Integration & Application", (4, 4, 4, 4), {E, R, T}),
+
+    # --- Layer 4: Bipartite Graphs / 2-Coloring (Graph Slice A) ---
+    # two_color_constraint: the invariant — every edge connects two DIFFERENT groups
+    _skill("two_color_constraint", "Two-color constraint", 55,
+           "Module F - Integration & Application", (2, 2, 3, 3), {K, R}),
+    # color_propagation: color spreads through traversal, color[neighbor] = 1 - color[current]
+    _skill("color_propagation", "Color propagation", 56,
+           "Module F - Integration & Application", (3, 3, 3, 3), {K, E, R}),
+    # color_conflict_detection: a same-colored edge is a constraint violation
+    _skill("color_conflict_detection", "Color conflict detection", 57,
+           "Module F - Integration & Application", (3, 3, 4, 3), {K, E, R}),
+    # bipartite_graph: the synthesis — BFS 2-coloring, disconnected graphs, DFS
+    # variation, odd/even cycle intuition, two-group recognition
+    _skill("bipartite_graph", "Bipartite graph", 58,
+           "Module F - Integration & Application", (4, 4, 4, 4), {E, R, T}),
 ]
 
 PREREQS = [
@@ -212,6 +227,23 @@ PREREQS = [
     SkillPrerequisite("undirected_cycle_detection", "dfs_implementation", PS.CORE),
     SkillPrerequisite("undirected_cycle_detection", "component_enumeration", PS.SUPPORTING),
     SkillPrerequisite("undirected_cycle_detection", "bfs_implementation", PS.SUPPORTING),
+
+    # --- Layer 4: Bipartite Graphs / 2-Coloring ---
+    SkillPrerequisite("two_color_constraint", "connectedness", PS.CORE),
+    SkillPrerequisite("two_color_constraint", "bfs_intuition", PS.CORE),
+    SkillPrerequisite("two_color_constraint", "cycle", PS.SUPPORTING),
+    SkillPrerequisite("two_color_constraint", "adjacency_list", PS.SUPPORTING),
+    SkillPrerequisite("color_propagation", "two_color_constraint", PS.CORE),
+    SkillPrerequisite("color_propagation", "bfs_visited_handling", PS.CORE),
+    SkillPrerequisite("color_propagation", "bfs_manual_tracing", PS.SUPPORTING),
+    SkillPrerequisite("color_conflict_detection", "color_propagation", PS.CORE),
+    SkillPrerequisite("color_conflict_detection", "bfs_manual_tracing", PS.CORE),
+    SkillPrerequisite("color_conflict_detection", "dfs_visited_handling", PS.SUPPORTING),
+    SkillPrerequisite("bipartite_graph", "color_conflict_detection", PS.CORE),
+    SkillPrerequisite("bipartite_graph", "bfs_implementation", PS.CORE),
+    SkillPrerequisite("bipartite_graph", "component_enumeration", PS.SUPPORTING),
+    SkillPrerequisite("bipartite_graph", "undirected_cycle_detection", PS.SUPPORTING),
+    SkillPrerequisite("bipartite_graph", "dfs_implementation", PS.SUPPORTING),
 ]
 
 # ------------------------------------------------------------- theory ----
@@ -523,6 +555,58 @@ THEORY = {
         "its own neighbor list, it is visited (you marked it on entry), and it is not the parent — a "
         "cycle of length one, correctly detected. Everything stays O(V+E): each vertex is visited "
         "once and each edge is examined from both endpoints across the whole run."
+    ),
+
+    # --- Layer 4 theory ---
+    "two_color_constraint": (
+        "Some situations ask for exactly two groups: two teams, two time slots, two sides of a "
+        "conflict. Model the entities as vertices and each 'these two must be separated' relation "
+        "as an edge, and the requirement becomes one clean rule — the two-color constraint: for "
+        "every edge (u, v), color[u] != color[v]. The labels themselves carry no meaning: calling "
+        "the teams 0 and 1, or red and blue, or swapping 0 and 1 everywhere, all describe the same "
+        "split — only the OPPOSITE-ness matters. A graph that admits such a split is called "
+        "bipartite: its vertices partition into two sets and every edge crosses between them, never "
+        "inside one set. Nothing about this promises that every graph can be split this way — "
+        "whether a satisfying assignment EXISTS is exactly the question the rest of this layer "
+        "answers."
+    ),
+    "color_propagation": (
+        "One assigned color forces all the others along the edges: if u and v are connected, v "
+        "must take the opposite color. So start anywhere, color the start 0, and let the colors "
+        "spread through a traversal — exactly the way BFS spreads levels: level 0 gets color 0, "
+        "level 1 gets color 1, level 2 gets color 0 again. Mechanically it is plain BFS with one "
+        "extra array: when you discover an uncolored neighbor, set color[neighbor] = 1 - "
+        "color[current] and enqueue it. Notice what happened to the visited set: color[v] != -1 "
+        "now means 'discovered', so the color array DOES DOUBLE DUTY as the visited check — one "
+        "array, two jobs, exactly like distance[] replaced visited in the shortest-path layer. "
+        "Uncolored (-1) means not yet reached; every discovered vertex carries its forced team."
+    ),
+    "color_conflict_detection": (
+        "Propagation assigns colors to new vertices; the interesting moment is meeting a neighbor "
+        "that is ALREADY colored. Two cases. Opposite color: the edge is satisfied — this is "
+        "normal, keep scanning. SAME color: constraint violation — this edge demands opposite "
+        "teams, yet both endpoints sit in the same one, so no assignment can satisfy the graph: "
+        "it is not 2-colorable. Do not confuse conflict with visited: 'already colored' is the "
+        "normal, expected case (every non-tree edge meets a colored vertex); a conflict is the "
+        "narrow sub-case where the colors FAIL to differ. Walk a triangle to see it break: color "
+        "the first vertex 0, its neighbors 1 and 1 — and the edge between the two 1s now connects "
+        "equal colors. A square, walked the same way, comes back consistent: 0, 1, 0, 1. That is "
+        "the whole parity story in miniature — odd cycles force a conflict, even cycles do not."
+    ),
+    "bipartite_graph": (
+        "The complete check assembles everything you already own. Run the coloring BFS not once "
+        "but from every still-uncolored vertex — one traversal covers one component (the outer "
+        "loop again); a conflict in ANY component means the graph is not bipartite, and if every "
+        "component colors cleanly, it is. The DFS variation needs no new idea: color v on entry, "
+        "recurse into uncolored neighbors with 1 - color[v], and treat an equally-colored neighbor "
+        "as a violation — BFS and DFS return the same verdict, because bipartiteness is a property "
+        "of the graph, not of the exploration order. The cycle connection, intuitively: walking "
+        "around a cycle forces colors to alternate, so an even cycle returns to its start "
+        "consistently while an odd cycle arrives demanding a color the start already holds — a "
+        "graph is bipartite exactly when it contains no odd cycle. Self-loops fit with no special "
+        "code: the vertex is its own neighbor, colored the same as itself — a violation, and "
+        "indeed a cycle of length one is odd. With adjacency lists the check is O(V+E) time and "
+        "O(V) for the color array."
     ),
 }
 
@@ -843,6 +927,34 @@ _mcq_bank("undirected_cycle_detection", "DFS-with-parent started at vertex 0, ex
            ("c", "DFS cannot answer cycle questions, restart with BFS"),
            ("d", "Clear the visited set and run the same DFS again from 0")], "b",
           "One traversal = one component. 'No cycle in this component' must be established for every component: run dfs from each unvisited vertex and report a cycle if any run finds one.", (3, 3, 4, 4))
+
+# Layer 4 MCQ banks
+_mcq_bank("two_color_constraint", "The two-color constraint says: for every edge (u, v) of the graph ...",
+          [("a", "color[u] != color[v] — every edge connects two different groups"),
+           ("b", "color[u] == color[v] — every edge stays inside one group"),
+           ("c", "the constraint applies only to edges on cycles"),
+           ("d", "every vertex needs its own unique color")], "a",
+          "One rule covers every edge: its two endpoints must carry DIFFERENT labels. Vertices may share labels freely as long as no edge joins equals.", (2, 2, 3, 3))
+_mcq_bank("color_propagation", "In a coloring BFS, the current vertex v has color 1 and scans an "
+          "uncolored neighbor w. What color does w get?",
+          [("a", "0 — the opposite of v's color: color[w] = 1 - color[v]"),
+           ("b", "1 — the same color as v"),
+           ("c", "2 — a third color is introduced"),
+           ("d", "No color — only the source ever gets colored")], "a",
+          "Discovery forces the opposite color: 1 - 1 = 0. Each BFS level flips the color, exactly as it adds one distance step.", (3, 3, 3, 3))
+_mcq_bank("color_conflict_detection", "During a coloring BFS, the current vertex v (color 0) scans "
+          "neighbor u and finds u already colored 1. What follows?",
+          [("a", "A conflict — the graph is not bipartite"),
+           ("b", "Nothing is wrong: the edge connects opposite colors, so it is satisfied — keep scanning"),
+           ("c", "u must be recolored to 0 to match v"),
+           ("d", "The BFS must restart from u")], "b",
+          "Already-colored is the normal case — every non-tree edge meets one. Only an EQUALLY colored neighbor violates the constraint.", (3, 3, 4, 3))
+_mcq_bank("bipartite_graph", "Which of these graphs is NOT bipartite?",
+          [("a", "A square A—B—C—D—A with no other edges"),
+           ("b", "Two disjoint edges A—B and C—D"),
+           ("c", "A triangle A—B—C—A"),
+           ("d", "A single edge A—B")], "c",
+          "Walking a triangle alternates 0,1,0 and the closing edge joins two 0s — a conflict. Even cycles come back consistent; odd cycles never.", (3, 3, 4, 4))
 
 _mcq_bank("adjacency", "Two vertices are adjacent when...",
           [("a", "An edge connects them directly"),
@@ -2077,6 +2189,360 @@ def _build_practice():
                _h("light_hint", "DFS with a parent parameter; a visited non-parent neighbor is the redundant loop; run it from every unvisited computer."),
                _h("targeted_explanation", "Model computers as vertices, cables as undirected edges. Run DFS carrying (vertex, parent): skip the parent, and any OTHER visited neighbor proves a redundant loop. Because the LAN may be split into sections, wrap it in the outer loop over unvisited vertices — a loop in ANY section fails the check. Still O(V+E); BFS with (vertex, parent) entries works identically.")])
 
+    # --- Layer 4: two_color_constraint ---
+    uid = _unit("two_color_constraint", "Two-color constraint — practice",
+                "Apply the opposite-colors-along-every-edge rule by hand",
+                UnitType.PRACTICE, dims={K, R})
+    _ex(uid, "two_color_constraint", InteractionType.MCQ,
+        "A square of roads: A—B, B—C, C—D, D—A. Neighboring intersections must get different "
+        "flags. You flag A with 0. Which assignment satisfies every edge?",
+        *_mcq("", [("a", "B=1, C=0, D=1"),
+                  ("b", "B=1, C=1, D=0"),
+                  ("c", "B=0, C=1, D=0"),
+                  ("d", "No assignment can satisfy all four edges")], "a",
+             "Going around the square the flags must alternate 0,1,0,1 — every edge then joins a 0 with a 1. The alternating assignment is essentially unique up to swapping the labels.", (2, 2, 3, 3)), ordering=1,
+        hints=[_h("socratic_question", "A is 0 — what does the edge A—B force B to be?"),
+               _h("micro_question", "Follow the square edge by edge: B follows from A, C from B, D from C — and then the closing edge D—A must also disagree."),
+               _h("light_hint", "Alternate: 0, 1, 0, 1 around the square."),
+               _h("targeted_explanation", "A=0 forces B=1 (edge A—B), B=1 forces C=0, C=0 forces D=1, and the closing edge D—A joins 1 with 0: satisfied. The square is two-colorable.")])
+    _ex(uid, "two_color_constraint", InteractionType.FREE_FORM,
+        "A teacher wants to split a class into two rooms so that every 'these two distract each "
+        "other' pair ends up in different rooms. Explain what the vertices, edges and two colors "
+        "are in this situation, state the one rule every edge must satisfy, and explain why "
+        "calling the rooms '0 and 1' instead of 'left and right' makes no difference to the "
+        "problem.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["vertices", "students", "vertex", "people", "children", "class"],
+             "text": "Students are the vertices."},
+            {"id": "p2", "keywords": ["edges", "distract", "pair", "conflict", "relation"],
+             "text": "Each distraction pair is an edge."},
+            {"id": "p3", "keywords": ["different", "opposite", "differ", "not equal", "!="],
+             "text": "The rule: every edge must join two DIFFERENT rooms/colors."},
+            {"id": "p4", "keywords": ["label", "meaning", "swap", "renaming", "name", "same"],
+             "text": "Labels carry no meaning — swapping the two names everywhere describes the same split."},
+         ], "min_points": 3},
+        d((2, 2, 3, 3)), requires_ai=True, ordering=2,
+        hints=[_h("socratic_question", "What plays the role of 'these two must be separated' — and what plays the role of the two groups?"),
+               _h("micro_question", "If you rename room 0 to 'left' and room 1 to 'right', does any friendship pair violate the rule differently?"),
+               _h("light_hint", "Students = vertices, distraction pairs = edges, rooms = the two colors; the rule is that every edge crosses between the rooms."),
+               _h("targeted_explanation", "Vertices = students, edges = distraction pairs, colors = the two rooms. The rule: color[u] != color[v] for every edge — no pair in the same room. The labels are arbitrary: swapping 0/1 (or left/right) everywhere yields the identical split, so only the opposite-ness matters.")])
+
+    # --- Layer 4: color_propagation ---
+    uid = _unit("color_propagation", "Color propagation — practice",
+                "Let the opposite-color rule spread through a BFS",
+                UnitType.PRACTICE, dims={K, E, R})
+    _ex(uid, "color_propagation", InteractionType.CODE_TRACING,
+        "This BFS colors the graph as it discovers vertices. What does it print?\n\n"
+        "from collections import deque\n"
+        "graph = [[1, 2], [3], [3], []]\n"
+        "color = [-1] * 4\n"
+        "color[0] = 0\n"
+        "queue = deque([0])\n"
+        "while queue:\n"
+        "    v = queue.popleft()\n"
+        "    for nxt in graph[v]:\n"
+        "        if color[nxt] == -1:\n"
+        "            color[nxt] = 1 - color[v]\n"
+        "            queue.append(nxt)\n"
+        "print(color)",
+        {"code": "", "expected_output": "[0, 1, 1, 0]"},
+        d((3, 3, 3, 3)), ordering=1,
+        hints=[_h("socratic_question", "Vertex 0 has color 0 — what do its neighbors 1 and 2 get? And what does their common neighbor 3 get?"),
+               _h("micro_question", "Vertex 3 is discovered from a color-1 vertex — what is 1 - 1?"),
+               _h("light_hint", "The colors alternate level by level: 0 | 1 1 | 0."),
+               _h("targeted_explanation", "Level 0: vertex 0 (color 0). Level 1: vertices 1, 2 (color 1). Level 2: vertex 3, discovered from a color-1 vertex, gets 1 - 1 = 0. The array prints [0, 1, 1, 0] — and note color[v] != -1 did the job of the visited set.")])
+    _ex(uid, "color_propagation", InteractionType.MCQ,
+        "A coloring BFS starts from S with color 0. Vertex X sits at BFS level 3 from S. Which "
+        "color must X receive, and why?",
+        *_mcq("", [("a", "0 — levels repeat with period two, so odd levels differ from the source"),
+                  ("b", "1 — each level flips the color: 0, 1, 0, 1"),
+                  ("c", "3 — colors follow level numbers"),
+                  ("d", "It cannot be determined from the level alone")], "b",
+             "Color spreads one flip per level: level L gets color L mod 2. Level 3 is odd, so X gets 1.", (3, 3, 3, 3)), ordering=2,
+        hints=[_h("socratic_question", "What color does every level-1 vertex get? Every level-2 vertex?"),
+               _h("micro_question", "X was discovered from a level-2 vertex — what is 1 minus that vertex's color?"),
+               _h("light_hint", "Levels alternate colors: even levels share the source's color."),
+               _h("targeted_explanation", "BFS discovers level by level, and each discovery flips the color: level L ends up with color L mod 2. Level 3 → color 1.")])
+    _ex(uid, "color_propagation", InteractionType.FREE_FORM,
+        "The shortest-path layer replaced the visited set with a distance array; the coloring BFS "
+        "seems to have no visited set at all. Explain what plays the role of 'visited' during the "
+        "coloring BFS, and why the algorithm still terminates.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["color", "color[v]", "-1", "uncolored"],
+             "text": "The color array does double duty: color != -1 means discovered."},
+            {"id": "p2", "keywords": ["once", "at most once", "never re-enqueue", "no second", "single"],
+             "text": "A vertex is colored (enqueued) exactly once, so every vertex leaves the queue at most once."},
+            {"id": "p3", "keywords": ["same", "replaces", "instead", "double duty", "doubles", "role"],
+             "text": "It replaces the visited set, exactly like the distance array did."},
+         ], "min_points": 2},
+        d((3, 2, 4, 3)), requires_ai=True, ordering=3,
+        hints=[_h("socratic_question", "Which check does the code make before coloring a neighbor — and what does that check test?"),
+               _h("micro_question", "Can a vertex pass the color == -1 check twice?"),
+               _h("light_hint", "color[v] != -1 means 'discovered' — the array is the visited set."),
+               _h("targeted_explanation", "color[v] != -1 doubles as the visited check: a vertex is colored exactly once, at its first discovery, and never enqueued again. One array answers 'reached?' and 'which team?' — the same double duty distance[] performed in the shortest-path layer, which is why the run stays O(V+E).")])
+
+    # --- Layer 4: color_conflict_detection ---
+    uid = _unit("color_conflict_detection", "Color conflict detection — practice",
+                "Recognize the same-colored edge that breaks 2-colorability",
+                UnitType.PRACTICE, dims={K, E, R})
+    _ex(uid, "color_conflict_detection", InteractionType.CODE_TRACING,
+        "The same coloring BFS now runs on a triangle. What does it print?\n\n"
+        "from collections import deque\n"
+        "graph = [[1, 2], [0, 2], [0, 1]]\n"
+        "color = [-1] * 3\n"
+        "color[0] = 0\n"
+        "queue = deque([0])\n"
+        "conflict = False\n"
+        "while queue:\n"
+        "    v = queue.popleft()\n"
+        "    for nxt in graph[v]:\n"
+        "        if color[nxt] == -1:\n"
+        "            color[nxt] = 1 - color[v]\n"
+        "            queue.append(nxt)\n"
+        "        elif color[nxt] == color[v]:\n"
+        "            conflict = True\n"
+        "print(color, \"conflict\" if conflict else \"ok\")",
+        {"code": "", "expected_output": "[0, 1, 1] conflict"},
+        d((3, 3, 4, 3)), ordering=1,
+        hints=[_h("socratic_question", "After vertex 0 colors both neighbors 1, look at the edge between those two neighbors — what colors do its endpoints carry?"),
+               _h("micro_question", "When v=1 scans neighbor 2: is 2 already colored, and is its color different from 1's?"),
+               _h("light_hint", "The two neighbors of vertex 0 both get color 1 — but they are connected to each other."),
+               _h("targeted_explanation", "Vertex 0 colors 1 and 2 with color 1. When vertex 1 scans neighbor 2, both carry color 1 while joined by an edge — a constraint violation. The array stays [0, 1, 1] and 'conflict' prints: the triangle is not 2-colorable.")])
+    _ex(uid, "color_conflict_detection", InteractionType.MCQ,
+        "In a coloring traversal, what is the difference between 'already colored' and 'conflict'?",
+        *_mcq("", [("a", "They mean the same thing — any colored neighbor breaks the coloring"),
+                  ("b", "Already colored is normal (opposite color: edge satisfied); conflict is the special case where the colors are EQUAL"),
+                  ("c", "Already colored means an error; conflict means the coloring is finished"),
+                  ("d", "Conflicts only occur at the source vertex")], "b",
+             "Every non-tree edge meets an already-colored vertex without any problem. Only an equally-colored neighbor violates the invariant.", (3, 3, 4, 3)), ordering=2,
+        hints=[_h("socratic_question", "Which case does the code check first — and what does the other branch of the check handle?"),
+               _h("micro_question", "An edge whose endpoints carry 0 and 1: is that a violation of color[u] != color[v]?"),
+               _h("light_hint", "Re-read the invariant: only EQUAL colors on an edge break it."),
+               _h("targeted_explanation", "'Already colored' covers both tree and non-tree edges — expected and harmless when the colors differ. A conflict is the narrow case color[nbr] == color[v]: the invariant fails for that edge, so no valid two-group split exists.")])
+    _ex(uid, "color_conflict_detection", InteractionType.FREE_FORM,
+        "Walk the triangle A—B—C—A with the alternation rule starting from color[A] = 0, and show "
+        "exactly where it breaks. Then explain why the square A—B—C—D—A, walked the same way, "
+        "comes back consistent — and what that difference means for two-colorability.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["0", "1", "0, 1, 0", "alternate", "alternating"],
+             "text": "Walks the triangle alternating: A=0, B=1, C=0."},
+            {"id": "p2", "keywords": ["c-a", "closing", "back to a", "a is 0", "same color", "both 0", "edge c-a"],
+             "text": "The closing edge C—A joins two 0s — the conflict."},
+            {"id": "p3", "keywords": ["0, 1, 0, 1", "even", "four", "square", "consistent", "works"],
+             "text": "The square alternates 0,1,0,1 and returns consistently — no conflict."},
+            {"id": "p4", "keywords": ["odd", "three", "length", "even cycles", "odd cycles"],
+             "text": "Connects the difference to odd vs even cycle length."},
+         ], "min_points": 3},
+        d((3, 2, 4, 3)), requires_ai=True, ordering=3,
+        hints=[_h("socratic_question", "A=0 forces B=1; B forces C=0 — now look at the edge C—A."),
+               _h("micro_question", "How many flips does a walk around a closed loop need to come back consistent?"),
+               _h("light_hint", "An even number of edges alternates back to the starting color; an odd number cannot."),
+               _h("targeted_explanation", "Triangle: A=0 forces B=1 forces C=0, and the closing edge C—A joins 0 with 0 — the conflict. The square alternates 0,1,0,1 and the closing edge joins different colors — consistent. Odd cycles force a conflict; even cycles do not. That is the parity intuition behind two-colorability.")])
+
+    # --- Layer 4: bipartite_graph ---
+    uid = _unit("bipartite_graph", "Bipartite graph — practice",
+                "Implement the full 2-coloring check and recognize two-group situations",
+                UnitType.PRACTICE, dims={E, R})
+    _ex(uid, "bipartite_graph", InteractionType.CODE_TRACING,
+        "The complete bipartite check: coloring BFS plus the outer loop over components. What "
+        "does it print?\n\n"
+        "from collections import deque\n"
+        "graph = [[1], [0], [3, 4], [2, 4], [2, 3], []]\n"
+        "color = [-1] * 6\n"
+        "\n"
+        "def bfs(start):\n"
+        "    color[start] = 0\n"
+        "    queue = deque([start])\n"
+        "    while queue:\n"
+        "        v = queue.popleft()\n"
+        "        for nbr in graph[v]:\n"
+        "            if color[nbr] == -1:\n"
+        "                color[nbr] = 1 - color[v]\n"
+        "                queue.append(nbr)\n"
+        "            elif color[nbr] == color[v]:\n"
+        "                return False\n"
+        "    return True\n"
+        "\n"
+        "verdict = \"bipartite\"\n"
+        "for s in range(6):\n"
+        "    if color[s] == -1 and not bfs(s):\n"
+        "        verdict = \"not bipartite\"\n"
+        "print(verdict)",
+        {"code": "", "expected_output": "not bipartite"},
+        d((3, 3, 4, 3)), ordering=1,
+        hints=[_h("socratic_question", "Component {0,1} is a single edge — what verdict does bfs(0) return? What does component {2,3,4} contain?"),
+               _h("micro_question", "Inside bfs(2): vertices 3 and 4 both get color 1 — is there an edge between them?"),
+               _h("light_hint", "The triangle {2,3,4} is where the conflict lives."),
+               _h("targeted_explanation", "bfs(0) colors the single edge cleanly → True. bfs(2) colors 2 with 0, neighbors 3 and 4 with 1 — and the edge 3—4 joins two 1s → False. The outer loop catches it: 'not bipartite'. One conflicting component decides the whole graph.")])
+    _ex(uid, "bipartite_graph", InteractionType.MCQ,
+        "A colleague says: 'Every cycle makes a graph non-bipartite.' Which example settles it?",
+        *_mcq("", [("a", "A square A—B—C—D—A is a cycle and 2-colors cleanly (0,1,0,1) — only ODD cycles break bipartiteness"),
+                  ("b", "She is right: the square cannot be 2-colored"),
+                  ("c", "Cycles do not matter at all — only the number of vertices does"),
+                  ("d", "Both the square and the triangle 2-color cleanly")], "a",
+             "Walking any cycle forces alternating colors; even lengths return consistently, odd lengths end in a conflict. Cycles per se are harmless — odd ones are not.", (3, 3, 4, 4)), ordering=2,
+        hints=[_h("socratic_question", "Try to 2-color the square by hand: 0, 1, 0, ... what does the closing edge need?"),
+               _h("micro_question", "Now the triangle: 0, 1, 0 — what does the closing edge join?"),
+               _h("light_hint", "The difference between the square and the triangle is the parity of their lengths."),
+               _h("targeted_explanation", "The square alternates 0,1,0,1 and its closing edge joins 1 with 0 — satisfied. The triangle's closing edge joins 0 with 0 — a conflict. Bipartite exactly when there is no ODD cycle.")])
+    _ex(uid, "bipartite_graph", InteractionType.CODE_WRITING,
+        "Complete the bipartite check below: fill in the two marked lines inside bfs so the "
+        "function returns True exactly when the undirected graph is 2-colorable. The outer loop "
+        "is already written for you. Do not change anything else.",
+        {"function_name": "is_bipartite_completed",
+         "starter": ("from collections import deque\n"
+                     "\n"
+                     "def is_bipartite_completed(graph):\n"
+                     "    n = len(graph)\n"
+                     "    color = [-1] * n\n"
+                     "\n"
+                     "    def bfs(start):\n"
+                     "        color[start] = 0\n"
+                     "        queue = deque([start])\n"
+                     "        while queue:\n"
+                     "            v = queue.popleft()\n"
+                     "            for nxt in graph[v]:\n"
+                     "                # line 1: color an uncolored neighbor with the opposite color and queue it\n"
+                     "                # line 2: an equally-colored neighbor is a constraint violation\n"
+                     "                pass\n"
+                     "        return True\n"
+                     "\n"
+                     "    for start in range(n):\n"
+                     "        if color[start] == -1 and not bfs(start):\n"
+                     "            return False\n"
+                     "    return True\n"),
+         "tests": [{"graph": [[1], [0]], "expected": True},
+                   {"graph": [[1, 3], [0, 2], [1, 3], [2, 0]], "expected": True},
+                   {"graph": [[1, 2], [0, 2], [0, 1]], "expected": False},
+                   {"graph": [[], [], []], "expected": True}],
+         "solution": ("from collections import deque\n"
+                      "\n"
+                      "def is_bipartite_completed(graph):\n"
+                      "    n = len(graph)\n"
+                      "    color = [-1] * n\n"
+                      "\n"
+                      "    def bfs(start):\n"
+                      "        color[start] = 0\n"
+                      "        queue = deque([start])\n"
+                      "        while queue:\n"
+                      "            v = queue.popleft()\n"
+                      "            for nxt in graph[v]:\n"
+                      "                if color[nxt] == -1:\n"
+                      "                    color[nxt] = 1 - color[v]\n"
+                      "                    queue.append(nxt)\n"
+                      "                elif color[nxt] == color[v]:\n"
+                      "                    return False\n"
+                      "        return True\n"
+                      "\n"
+                      "    for start in range(n):\n"
+                      "        if color[start] == -1 and not bfs(start):\n"
+                      "            return False\n"
+                      "    return True\n")},
+        d((3, 3, 4, 3)), language="python", ordering=3,
+        hints=[_h("socratic_question", "Discovery forces the opposite color — what does that line look like? And what is the only bad case for an already-colored neighbor?"),
+               _h("micro_question", "Which comparison expresses 'this edge joins two vertices of the SAME group'?"),
+               _h("light_hint", "Line 1: color[nxt] = 1 - color[v], then queue.append(nxt). Line 2: elif color[nxt] == color[v]: return False."),
+               _h("targeted_explanation", "Inside the loop: uncolored → color[nxt] = 1 - color[v] and enqueue; already colored with the SAME color → return False. The color array doubles as the visited check, and the pre-written outer loop covers every component.")])
+    _ex(uid, "bipartite_graph", InteractionType.CODE_WRITING,
+        "Write `is_bipartite(graph)` for an UNDIRECTED graph given as an adjacency list (every "
+        "edge appears in both endpoint lists). Return True if the vertices can be split into two "
+        "groups so that every edge joins different groups, False otherwise. The graph may be "
+        "disconnected and may contain isolated vertices; a self-loop (a vertex in its own "
+        "neighbor list) makes the graph NOT bipartite.",
+        {"function_name": "is_bipartite",
+         "starter": "from collections import deque\n\ndef is_bipartite(graph):\n    # your code here\n",
+         "tests": [{"graph": [[1], [0]], "expected": True},
+                   {"graph": [[1, 3], [0, 2], [1, 3], [2, 0]], "expected": True},
+                   {"graph": [[1, 2], [0, 2], [0, 1]], "expected": False},
+                   {"graph": [[1], [0], [3, 4], [2, 4], [2, 3]], "expected": False},
+                   {"graph": [[1, 2], [0], [0]], "expected": True},
+                   {"graph": [[], [], []], "expected": True},
+                   {"graph": [[0]], "expected": False}],
+         "solution": ("from collections import deque\n"
+                      "\n"
+                      "def is_bipartite(graph):\n"
+                      "    n = len(graph)\n"
+                      "    color = [-1] * n\n"
+                      "    for start in range(n):\n"
+                      "        if color[start] != -1:\n"
+                      "            continue\n"
+                      "        color[start] = 0\n"
+                      "        queue = deque([start])\n"
+                      "        while queue:\n"
+                      "            v = queue.popleft()\n"
+                      "            for nbr in graph[v]:\n"
+                      "                if color[nbr] == -1:\n"
+                      "                    color[nbr] = 1 - color[v]\n"
+                      "                    queue.append(nbr)\n"
+                      "                elif color[nbr] == color[v]:\n"
+                      "                    return False\n"
+                      "    return True\n")},
+        d((4, 4, 4, 4)), language="python", ordering=4,
+        hints=[_h("socratic_question", "Your completed bfs answers the question for ONE component — what is missing for a graph with several components?"),
+               _h("micro_question", "For the self-loop [[0]]: vertex 0 is its own neighbor with the same color — what does the check conclude?"),
+               _h("light_hint", "Outer loop over uncolored starts; seed color 0; color-on-discovery with 1 - color[v]; same-colored neighbor → False."),
+               _h("targeted_explanation", "Coloring BFS per component via the outer loop; color[nbr] == color[v] anywhere → not bipartite. The self-loop needs no special case: the vertex meets its own color — a violation, and rightly so, since a one-edge cycle is odd. O(V+E) time, O(V) color state.")])
+    _ex(uid, "bipartite_graph", InteractionType.CODE_WRITING,
+        "Translate the same invariant to DFS as a controlled variation: color v on entry, recurse "
+        "into uncolored neighbors with the opposite color, and treat an equally-colored neighbor "
+        "as a violation. The graph may be disconnected. The verdict must match the BFS version — "
+        "bipartiteness is a property of the graph, not of the exploration order.",
+        {"function_name": "is_bipartite_dfs",
+         "starter": "def is_bipartite_dfs(graph):\n    # your code here\n",
+         "tests": [{"graph": [[1], [0]], "expected": True},
+                   {"graph": [[1, 3], [0, 2], [1, 3], [2, 0]], "expected": True},
+                   {"graph": [[1, 2], [0, 2], [0, 1]], "expected": False},
+                   {"graph": [[1], [0], [3, 4], [2, 4], [2, 3]], "expected": False},
+                   {"graph": [[], [], []], "expected": True},
+                   {"graph": [[0]], "expected": False}],
+         "solution": ("def is_bipartite_dfs(graph):\n"
+                      "    n = len(graph)\n"
+                      "    color = [-1] * n\n"
+                      "\n"
+                      "    def dfs(v, c):\n"
+                      "        color[v] = c\n"
+                      "        for nbr in graph[v]:\n"
+                      "            if color[nbr] == -1:\n"
+                      "                if not dfs(nbr, 1 - c):\n"
+                      "                    return False\n"
+                      "            elif color[nbr] == c:\n"
+                      "                return False\n"
+                      "        return True\n"
+                      "\n"
+                      "    for start in range(n):\n"
+                      "        if color[start] == -1 and not dfs(start, 0):\n"
+                      "            return False\n"
+                      "    return True\n")},
+        d((4, 4, 4, 4)), language="python", ordering=5,
+        hints=[_h("socratic_question", "In the BFS version the color travels with the queue entries — in recursion, what carries the color instead?"),
+               _h("micro_question", "Where exactly does the DFS version perform the same 'equal colors on an edge' test?"),
+               _h("light_hint", "dfs(v, c): color[v] = c on entry; recurse with 1 - c; a neighbor already carrying c is the violation; outer loop over uncolored starts."),
+               _h("targeted_explanation", "Same invariant, depth-first: color on entry, recurse into uncolored neighbors with 1 - c, fail on an equally-colored neighbor, and run the outer loop so every component is checked. The verdict agrees with BFS on every graph — the order changes, the property does not.")])
+    uid = _unit("bipartite_graph", "Bipartite graph — apply",
+                "Recognize a two-group constraint situation independently",
+                UnitType.APPLY, dims={T, R})
+    _ex(uid, "bipartite_graph", InteractionType.FREE_FORM,
+        "A project lead has a list of coworker pairs who must NEVER sit on the same subteam, and "
+        "wants the office split into exactly two subteams. She asks you: (1) can this always be "
+        "done for any list of pairs, (2) how would you check it for a concrete list, and (3) what "
+        "would tell her the split is impossible? You are not told any algorithm name — describe "
+        "your approach.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["not always", "cannot always", "no", "impossible for some", "not every"],
+             "text": "Answers (1): no — some pair lists cannot be split this way."},
+            {"id": "p2", "keywords": ["two colors", "two groups", "two teams", "color", "label", "assign"],
+             "text": "Models it as coloring: coworkers = vertices, pairs = edges, subteams = the two colors."},
+            {"id": "p3", "keywords": ["traversal", "bfs", "dfs", "spread", "propagate", "opposite"],
+             "text": "Propagates opposite assignments along the pairs via traversal."},
+            {"id": "p4", "keywords": ["same", "equal", "conflict", "both", "violat"],
+             "text": "The impossible signal: a pair whose two people are forced into the SAME group."},
+         ], "min_points": 3},
+        d((4, 4, 4, 4)), requires_ai=True, ordering=6,
+        hints=[_h("socratic_question", "Each pair is a demand: 'different groups'. What happens when the demands form a loop with an odd number of pairs?"),
+               _h("micro_question", "If you assign people groups as you walk from coworker to coworker, what observation marks the failure?"),
+               _h("light_hint", "Color the coworker graph with two colors via traversal; an edge joining two equal colors proves no split exists."),
+               _h("targeted_explanation", "(1) No — some pair lists are unsplittable. (2) Model coworkers as vertices and pairs as edges; run the two-coloring traversal (BFS or DFS), assigning each newly reached person the opposite group of the person who led to them. (3) The moment a pair's two people already carry the same group, the split is impossible — the graph is not bipartite (an odd loop of demands).")])
+
 
 def _build_variations():
     """A second, differently-angled exercise for every skill that would otherwise repeat
@@ -2216,6 +2682,37 @@ def _build_variations():
                        ("c", "5 is its own component and trivially cycle-free: dfs(5, -1) just returns False"),
                        ("d", "The graph must be re-modeled before it can be checked")], "c",
                   "An isolated vertex is a one-vertex component with no edges, hence no cycle; the outer loop visits it, dfs returns False immediately.", (3, 3, 4, 3))),
+        # Layer 4 variations
+        "two_color_constraint": (
+            "Does it matter whether the two groups are called 0 and 1, or red and blue?",
+            _mcq("", [("a", "Yes — 0/1 works but color names break the algorithm"),
+                       ("b", "No — the labels carry no meaning; only 'the two endpoints of every edge differ' matters, and swapping the names everywhere describes the same split"),
+                       ("c", "Yes — every vertex needs its own distinct label"),
+                       ("d", "Yes — the first group must always be called 0")], "b",
+                  "The constraint is about opposite-ness, not names: any two distinct labels work, and a global rename changes nothing.", (2, 2, 3, 3))),
+        "color_propagation": (
+            "In the coloring BFS there is no separate visited set. What plays its role?",
+            _mcq("", [("a", "The queue length"),
+                       ("b", "The color array: color[v] != -1 means the vertex was already discovered"),
+                       ("c", "The graph's vertex count"),
+                       ("d", "Nothing — coloring BFS revisits vertices on purpose")], "b",
+                  "A vertex is colored exactly once, at first discovery, so color != -1 doubles as the visited check — the same double duty distance[] performed in the shortest-path layer.", (3, 3, 3, 3))),
+        "color_conflict_detection": (
+            "A coloring BFS finds a same-colored edge in one component of a 3-component graph. "
+            "What is the verdict for the whole graph?",
+            _mcq("", [("a", "The other two components can still be bipartite, so the graph is bipartite"),
+                       ("b", "The graph is not bipartite — every component must color cleanly, and one conflict decides it"),
+                       ("c", "Only that component needs re-coloring with three colors"),
+                       ("d", "The conflict should be ignored if the other components are large")], "b",
+                  "Bipartiteness is a whole-graph property: the split exists only if EVERY component 2-colors cleanly. One conflict anywhere fails the check.", (3, 3, 4, 4))),
+        "bipartite_graph": (
+            "BFS 2-coloring says True and the DFS variation says False for the same graph. What "
+            "is going on?",
+            _mcq("", [("a", "One of the two implementations has a bug — both orders must agree"),
+                       ("b", "Nothing — DFS explores differently, so the property can differ"),
+                       ("c", "Both are right: bipartiteness depends on the exploration order"),
+                       ("d", "The graph must be disconnected for this to happen")], "a",
+                  "Bipartiteness is a property of the GRAPH, not of the traversal order — a correct BFS check and a correct DFS check always return the same verdict.", (3, 3, 4, 4))),
     }
     for skill_id, (prompt, (payload, difficulty)) in VARIATIONS.items():
         teach = [u for u in UNITS if u.skill_id == skill_id and u.unit_type == UnitType.TEACH]
@@ -2243,7 +2740,9 @@ def _apply_amendments():
             "traversal_application", "v0_readiness",
             "traversal_boundary", "component_discovery", "component_enumeration",
             "bfs_distance", "path_reconstruction",
-            "cycle_encounter_reasoning", "parent_aware_traversal", "undirected_cycle_detection"],
+            "cycle_encounter_reasoning", "parent_aware_traversal", "undirected_cycle_detection",
+            "two_color_constraint", "color_propagation", "color_conflict_detection",
+            "bipartite_graph"],
     }
     descriptions = {
         "graph_definition": "Understand a graph as a model of entities and relationships.",
@@ -2295,6 +2794,11 @@ def _apply_amendments():
         "cycle_encounter_reasoning": "Interpret what traversal observes when it meets a visited neighbor in an undirected graph.",
         "parent_aware_traversal": "Distinguish the parent edge from genuine cycle evidence while traversing an undirected graph.",
         "undirected_cycle_detection": "Implement undirected cycle detection with DFS and BFS, handle disconnected graphs, and recognize the situation independently.",
+        # Layer 4 descriptions
+        "two_color_constraint": "Apply the invariant that every edge must connect two different groups.",
+        "color_propagation": "Propagate opposite colors through a traversal, with the color array doubling as the visited check.",
+        "color_conflict_detection": "Recognize a same-colored edge as the constraint violation that makes a graph not 2-colorable.",
+        "bipartite_graph": "Implement the full bipartite check (BFS, disconnected graphs, DFS variation) and recognize two-group situations independently.",
     }
     evidence = {
         "degree": {EvidenceType.RECOGNITION, EvidenceType.CONSTRUCTION},
@@ -2334,6 +2838,12 @@ def _apply_amendments():
         "parent_aware_traversal": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.EXPLANATION},
         "undirected_cycle_detection": {EvidenceType.RECOGNITION, EvidenceType.TRACE,
                                        EvidenceType.IMPLEMENTATION, EvidenceType.APPLICATION},
+        # Layer 4 evidence requirements
+        "two_color_constraint": {EvidenceType.RECOGNITION, EvidenceType.EXPLANATION},
+        "color_propagation": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.EXPLANATION},
+        "color_conflict_detection": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.EXPLANATION},
+        "bipartite_graph": {EvidenceType.RECOGNITION, EvidenceType.TRACE,
+                            EvidenceType.IMPLEMENTATION, EvidenceType.APPLICATION},
     }
     module_order = list(modules.keys())
     skill_order = {sid: i for i, m in enumerate(module_order) for sid in modules[m]}
@@ -2361,6 +2871,7 @@ def _apply_amendments():
         ("component_enumeration", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
         ("path_reconstruction", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
         ("undirected_cycle_detection", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
+        ("bipartite_graph", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
     }
     problem_keys = {("bfs_implementation", InteractionType.CODE_WRITING),
                     ("dfs_implementation", InteractionType.CODE_WRITING),
@@ -2369,7 +2880,8 @@ def _apply_amendments():
                     ("component_enumeration", InteractionType.CODE_WRITING),
                     ("bfs_distance", InteractionType.CODE_WRITING),
                     ("path_reconstruction", InteractionType.CODE_WRITING),
-                    ("undirected_cycle_detection", InteractionType.CODE_WRITING)}
+                    ("undirected_cycle_detection", InteractionType.CODE_WRITING),
+                    ("bipartite_graph", InteractionType.CODE_WRITING)}
     capabilities = {
         ("bfs_implementation", InteractionType.CODE_WRITING): {EvidenceType.TRACE, EvidenceType.RECOGNITION},
         ("dfs_implementation", InteractionType.CODE_WRITING): {EvidenceType.TRACE, EvidenceType.RECOGNITION},
@@ -2383,6 +2895,9 @@ def _apply_amendments():
         # IMPLEMENTATION via dfs_implementation's code-writing (prerequisite closure);
         # TRACE by this skill's own tracing activities
         ("undirected_cycle_detection", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
+        # IMPLEMENTATION via bfs_implementation's code-writing (prerequisite closure);
+        # TRACE by this skill's own tracing activities
+        ("bipartite_graph", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
     }
     for e in EXERCISES:
         role = role_by_type[e.interaction_type]
