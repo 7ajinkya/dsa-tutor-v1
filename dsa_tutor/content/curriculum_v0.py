@@ -124,6 +124,19 @@ SKILLS = [
     # variation, odd/even cycle intuition, two-group recognition
     _skill("bipartite_graph", "Bipartite graph", 58,
            "Module F - Integration & Application", (4, 4, 4, 4), {E, R, T}),
+
+    # --- Layer 5: Multi-Source BFS (Graph Slice A) ---
+    # multi_source_initialization: several equally valid starts — seed ALL of them
+    # at distance 0 into the queue; the BFS loop itself stays unchanged
+    _skill("multi_source_initialization", "Multi-source initialization", 59,
+           "Module F - Integration & Application", (3, 3, 3, 3), {K, E, R}),
+    # nearest_source_distance: first wave to arrive wins — distance to the NEAREST source
+    _skill("nearest_source_distance", "Nearest-source distance", 60,
+           "Module F - Integration & Application", (3, 3, 4, 3), {K, E, R}),
+    # multi_source_bfs: the synthesis — one BFS from all sources, O(V+E), disconnected
+    # components with no source keep -1, reduces to ordinary BFS for one source
+    _skill("multi_source_bfs", "Multi-source BFS", 61,
+           "Module F - Integration & Application", (4, 4, 4, 4), {E, R, T}),
 ]
 
 PREREQS = [
@@ -244,6 +257,16 @@ PREREQS = [
     SkillPrerequisite("bipartite_graph", "component_enumeration", PS.SUPPORTING),
     SkillPrerequisite("bipartite_graph", "undirected_cycle_detection", PS.SUPPORTING),
     SkillPrerequisite("bipartite_graph", "dfs_implementation", PS.SUPPORTING),
+
+    # --- Layer 5: Multi-Source BFS ---
+    SkillPrerequisite("multi_source_initialization", "bfs_distance", PS.CORE),
+    SkillPrerequisite("multi_source_initialization", "bfs_implementation", PS.CORE),
+    SkillPrerequisite("nearest_source_distance", "multi_source_initialization", PS.CORE),
+    SkillPrerequisite("nearest_source_distance", "bfs_manual_tracing", PS.SUPPORTING),
+    SkillPrerequisite("nearest_source_distance", "connectedness", PS.SUPPORTING),
+    SkillPrerequisite("multi_source_bfs", "nearest_source_distance", PS.CORE),
+    SkillPrerequisite("multi_source_bfs", "bfs_implementation", PS.CORE),
+    SkillPrerequisite("multi_source_bfs", "component_enumeration", PS.SUPPORTING),
 ]
 
 # ------------------------------------------------------------- theory ----
@@ -593,20 +616,60 @@ THEORY = {
         "equal colors. A square, walked the same way, comes back consistent: 0, 1, 0, 1. That is "
         "the whole parity story in miniature — odd cycles force a conflict, even cycles do not."
     ),
-    "bipartite_graph": (
-        "The complete check assembles everything you already own. Run the coloring BFS not once "
-        "but from every still-uncolored vertex — one traversal covers one component (the outer "
-        "loop again); a conflict in ANY component means the graph is not bipartite, and if every "
-        "component colors cleanly, it is. The DFS variation needs no new idea: color v on entry, "
-        "recurse into uncolored neighbors with 1 - color[v], and treat an equally-colored neighbor "
-        "as a violation — BFS and DFS return the same verdict, because bipartiteness is a property "
-        "of the graph, not of the exploration order. The cycle connection, intuitively: walking "
-        "around a cycle forces colors to alternate, so an even cycle returns to its start "
-        "consistently while an odd cycle arrives demanding a color the start already holds — a "
-        "graph is bipartite exactly when it contains no odd cycle. Self-loops fit with no special "
-        "code: the vertex is its own neighbor, colored the same as itself — a violation, and "
-        "indeed a cycle of length one is odd. With adjacency lists the check is O(V+E) time and "
-        "O(V) for the color array."
+        "bipartite_graph": (
+            "The complete check assembles everything you already own. Run the coloring BFS not once "
+            "but from every still-uncolored vertex — one traversal covers one component (the outer "
+            "loop again); a conflict in ANY component means the graph is not bipartite, and if every "
+            "component colors cleanly, it is. The DFS variation needs no new idea: color v on entry, "
+            "recurse into uncolored neighbors with 1 - color[v], and treat an equally-colored neighbor "
+            "as a violation — BFS and DFS return the same verdict, because bipartiteness is a property "
+            "of the graph, not of the exploration order. The cycle connection, intuitively: walking "
+            "around a cycle forces colors to alternate, so an even cycle returns to its start "
+            "consistently while an odd cycle arrives demanding a color the start already holds — a "
+            "graph is bipartite exactly when it contains no odd cycle. Self-loops fit with no special "
+            "code: the vertex is its own neighbor, colored the same as itself — a violation, and "
+            "indeed a cycle of length one is odd. With adjacency lists the check is O(V+E) time and "
+            "O(V) for the color array."
+        ),
+
+    # --- Layer 5 theory ---
+    "multi_source_initialization": (
+        "BFS starts from one source — but nothing in the algorithm's loop cares. The source only "
+        "matters at initialization: it is the vertex seeded into the queue at distance 0. So when a "
+        "problem offers SEVERAL equally valid starting points, change only the seeding: for every "
+        "source, set distance[source] = 0 and enqueue it — then run the ordinary BFS loop completely "
+        "unchanged. The wave analogy: each source drops its own stone in the water, and all the "
+        "ripples expand at the same time, one level per step, sharing one queue and one distance "
+        "array. Nothing about the queue mechanics, the enqueue-time marking, or the "
+        "distance[current] + 1 rule changes — they were never tied to having exactly one source. "
+        "Notice what this does NOT mean: you do not run one BFS per source, and you do not merge "
+        "their results afterward. One process, many starting points."
+    ),
+    "nearest_source_distance": (
+        "With several sources expanding simultaneously, what does a vertex's distance MEAN? Not "
+        "distance from a particular source — distance from the NEAREST source. All sources sit at "
+        "distance 0, so the queue processes vertices in nondecreasing distance from the nearest "
+        "source, exactly as ordinary BFS processes them in nondecreasing distance from THE source. "
+        "The first wave to reach a vertex fixes its final distance — later waves arrive no earlier, "
+        "so they cannot improve it. Where two ripples meet (a 'collision'), the meeting vertex got "
+        "its value from whichever source reached it first; the loser of the race simply finds the "
+        "vertex already discovered and moves on. This is the same first-discovery-is-minimal "
+        "argument as Layer 2, one abstraction up: 'the source' became 'the closest source'. A vertex "
+        "no wave ever reaches keeps -1: no source can reach it at all."
+    ),
+    "multi_source_bfs": (
+        "The complete picture: one BFS, initialized with every source at distance 0, computes the "
+        "nearest-source distance for EVERY vertex in a single pass — O(V+E), not O(S·(V+E)) for S "
+        "repeated BFS runs. Why is one pass correct? All sources start equal, the queue emits "
+        "vertices ordered by nearest-source distance, and first discovery is final — running the "
+        "BFS separately from each source would recompute the same waves over and over and merge "
+        "them with a minimum afterward; the shared queue performs that merge automatically, "
+        "cheaper. Edge conventions: a component containing no source keeps -1 everywhere (no wave "
+        "can ever enter it); one source reduces the whole thing to the ordinary single-source BFS "
+        "you already write; duplicate sources are input noise — a source already at distance 0 "
+        "simply fails the -1 discovery check, so it is enqueued once. Typical stories: nearest "
+        "hospital, nearest exit, several firefighters starting at once — any question of the form "
+        "'how close is the CLOSEST of these starting points?'."
     ),
 }
 
@@ -955,6 +1018,30 @@ _mcq_bank("bipartite_graph", "Which of these graphs is NOT bipartite?",
            ("c", "A triangle A—B—C—A"),
            ("d", "A single edge A—B")], "c",
           "Walking a triangle alternates 0,1,0 and the closing edge joins two 0s — a conflict. Even cycles come back consistent; odd cycles never.", (3, 3, 4, 4))
+
+# Layer 5 MCQ banks
+_mcq_bank("multi_source_initialization", "Ordinary BFS seeds visited={start} and queue=[start]. "
+          "The problem now has THREE equally valid starting points s1, s2, s3. What does the "
+          "multi-source initialization look like?",
+          [("a", "Run three separate BFS passes, one per source"),
+           ("b", "For every source: distance[source] = 0 and enqueue it — then the normal BFS loop, unchanged"),
+           ("c", "Pick one source and ignore the others"),
+           ("d", "Enqueue all sources at distance 1 so they are one step from the start")], "b",
+          "Only the seeding changes: all sources enter the queue at distance 0, and the loop you already write does the rest — no second pass, no merging.", (3, 3, 3, 3))
+_mcq_bank("nearest_source_distance", "Sources A and E start a simultaneous wave on the line "
+          "A—B—C—D—E. When both waves meet in the middle, what does distance[C] hold?",
+          [("a", "2 — the distance to the NEAREST source; the first wave to arrive fixed it"),
+           ("b", "4 — distances to both sources are added"),
+           ("c", "0 — meeting points belong to no source"),
+           ("d", "-1 — collisions mark undiscovered vertices")], "a",
+          "All sources are distance 0 and the wave expands one level per step; whichever wave reaches C first (either, at distance 2) fixes distance[C] = 2 — the minimum over all sources.", (3, 3, 4, 3))
+_mcq_bank("multi_source_bfs", "A graph has two components; only the first contains sources. After "
+          "one multi-source BFS, what does the second component's distance array hold?",
+          [("a", "0 — every vertex is its own source"),
+           ("b", "The largest distance found in the first component"),
+           ("c", "-1 — no wave can ever reach a component without a source"),
+           ("d", "The distances are undefined — the algorithm crashes")], "c",
+          "Waves only cross edges. A component with no source is never entered, so its vertices keep the -1 'never discovered' value — the same convention as ordinary BFS on disconnected graphs.", (3, 3, 4, 4))
 
 _mcq_bank("adjacency", "Two vertices are adjacent when...",
           [("a", "An edge connects them directly"),
@@ -2543,6 +2630,336 @@ def _build_practice():
                _h("light_hint", "Color the coworker graph with two colors via traversal; an edge joining two equal colors proves no split exists."),
                _h("targeted_explanation", "(1) No — some pair lists are unsplittable. (2) Model coworkers as vertices and pairs as edges; run the two-coloring traversal (BFS or DFS), assigning each newly reached person the opposite group of the person who led to them. (3) The moment a pair's two people already carry the same group, the split is impossible — the graph is not bipartite (an odd loop of demands).")])
 
+    # --- Layer 5: multi_source_initialization ---
+    uid = _unit("multi_source_initialization", "Multi-source initialization — practice",
+                "Seed several sources at distance 0 and let the ordinary BFS loop run",
+                UnitType.PRACTICE, dims={K, E, R})
+    _ex(uid, "multi_source_initialization", InteractionType.OUTPUT_PREDICTION,
+        "What does this code print?\n\n"
+        "from collections import deque\n"
+        "graph = [[1], [0, 2], [1, 3], [2, 4], [3], []]  # line A-B-C-D-E plus isolated 5\n"
+        "distance = [-1] * 6\n"
+        "sources = [0, 4]\n"
+        "queue = deque()\n"
+        "for s in sources:\n"
+        "    distance[s] = 0\n"
+        "    queue.append(s)\n"
+        "while queue:\n"
+        "    v = queue.popleft()\n"
+        "    for nxt in graph[v]:\n"
+        "        if distance[nxt] == -1:\n"
+        "            distance[nxt] = distance[v] + 1\n"
+        "            queue.append(nxt)\n"
+        "print(distance)",
+        {"code": "", "expected_output": "[0, 1, 2, 1, 0, -1]"},
+        d((3, 3, 3, 3)), ordering=1,
+        hints=[_h("socratic_question", "Both waves start at distance 0 — which vertices do they reach after one step each?"),
+               _h("micro_question", "Vertex 2 can be reached from 1 (distance 1) or from 3 (distance 1) — which discovery comes first, and does the second one matter?"),
+               _h("light_hint", "Wave from 0: B at 1, C at 2. Wave from 4: D at 1, C at 2 — but C was already discovered."),
+               _h("targeted_explanation", "Sources 0 and 4 enter at 0. One step: 1 and 3 get 1. Next: 2 gets 2 (first arrival). Vertex 5 is isolated — no wave reaches it, so it keeps -1: [0, 1, 2, 1, 0, -1]. The loop is the ordinary BFS loop; only the seeding changed.")])
+    _ex(uid, "multi_source_initialization", InteractionType.MCQ,
+        "Your single-source distance BFS works. The problem now hands you a LIST of starting "
+        "points instead of one. What is the minimal change?",
+        *_mcq("", [("a", "Wrap the BFS in a loop over the sources and take the minimum distance per vertex afterward"),
+                  ("b", "Seed every source with distance 0 into one shared queue before the loop; leave the loop untouched"),
+                  ("c", "Run the loop once per source, overwriting the distance array each time"),
+                  ("d", "Add a super-source vertex connected to all sources (not covered in this course)")], "b",
+             "The BFS loop never assumed one source — it only processes the queue. Seeding all sources at distance 0 makes them expand together in one pass.", (3, 3, 3, 3)), ordering=2,
+        hints=[_h("socratic_question", "Where in your single-source code does the number 1 of 'one source' actually appear?"),
+               _h("micro_question", "If the loop only ever reads the queue, what stops it from serving two starting points?"),
+               _h("light_hint", "Change only the lines BEFORE the while loop."),
+               _h("targeted_explanation", "distance = [-1]*n; for s in sources: distance[s] = 0; queue.append(s). The while loop is byte-for-byte the ordinary BFS loop — several seeds just make several waves expand together in one queue.")])
+    _ex(uid, "multi_source_initialization", InteractionType.FREE_FORM,
+        "Explain in your own words why seeding every source at distance 0 into ONE shared queue "
+        "makes the waves 'expand together' — and why the ordinary BFS loop needs no changes at all "
+        "to serve several starting points instead of one.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["distance 0", "seed", "seeded", "initialize", "enqueue all", "all sources"],
+             "text": "Every source is seeded at distance 0 into the same queue."},
+            {"id": "p2", "keywords": ["loop", "unchanged", "same", "ordinary", "does not change", "no change", "nothing"],
+             "text": "The BFS loop itself never assumed one source — it just processes the queue."},
+            {"id": "p3", "keywords": ["together", "same time", "simultaneous", "shared", "one queue", "expand"],
+             "text": "The sources expand simultaneously through the shared frontier, one level per step."},
+            {"id": "p4", "keywords": ["level", "step", "wave", "one more", "+1", "plus one"],
+             "text": "Each discovery is one more edge than its discoverer, so all waves stay level-synchronized."},
+         ], "min_points": 2},
+        d((3, 2, 3, 3)), requires_ai=True, ordering=3,
+        hints=[_h("socratic_question", "Where in the single-source code was 'one source' ever used INSIDE the while loop?"),
+               _h("micro_question", "After all sources are in the queue, what distinguishes their processing from any other queue processing?"),
+               _h("light_hint", "The loop only ever reads the queue; the seeding decides where the waves start."),
+               _h("targeted_explanation", "The loop's only assumptions are: the queue holds discovered vertices and each discovery is one edge more than its discoverer. Seeding every source at distance 0 satisfies both for many starting points at once — they expand as synchronized ripples, one level per step, in one shared queue.")])
+    _ex(uid, "multi_source_initialization", InteractionType.CODE_WRITING,
+        "Complete `seed_sources_completed(graph, sources)` below: fill in the two marked lines of "
+        "the initialization so the function returns the nearest-source distance array (the BFS "
+        "loop is already written). Distance 0 for every source, -1 for vertices no source "
+        "reaches. Do not change anything else.",
+        {"function_name": "seed_sources_completed",
+         "starter": ("from collections import deque\n"
+                     "\n"
+                     "def seed_sources_completed(graph, sources):\n"
+                     "    n = len(graph)\n"
+                     "    distance = [-1] * n\n"
+                     "    queue = deque()\n"
+                     "    for s in sources:\n"
+                     "        # line 1: record that this source is at distance 0\n"
+                     "        # line 2: put the source on the queue\n"
+                     "        pass\n"
+                     "    while queue:\n"
+                     "        v = queue.popleft()\n"
+                     "        for nxt in graph[v]:\n"
+                     "            if distance[nxt] == -1:\n"
+                     "                distance[nxt] = distance[v] + 1\n"
+                     "                queue.append(nxt)\n"
+                     "    return distance\n"),
+         "tests": [{"args": ["graph", "sources"],
+                    "graph": [[1], [0, 2], [1, 3], [2, 4], [3], []], "sources": [0, 4],
+                    "expected": [0, 1, 2, 1, 0, -1]},
+                   {"args": ["graph", "sources"],
+                    "graph": [[1], [0], []], "sources": [0], "expected": [0, 1, -1]},
+                   {"args": ["graph", "sources"],
+                    "graph": [[1], [0]], "sources": [], "expected": [-1, -1]}],
+         "solution": ("from collections import deque\n"
+                      "\n"
+                      "def seed_sources_completed(graph, sources):\n"
+                      "    n = len(graph)\n"
+                      "    distance = [-1] * n\n"
+                      "    queue = deque()\n"
+                      "    for s in sources:\n"
+                      "        distance[s] = 0\n"
+                      "        queue.append(s)\n"
+                      "    while queue:\n"
+                      "        v = queue.popleft()\n"
+                      "        for nxt in graph[v]:\n"
+                      "            if distance[nxt] == -1:\n"
+                      "                distance[nxt] = distance[v] + 1\n"
+                      "                queue.append(nxt)\n"
+                      "    return distance\n")},
+        d((3, 3, 3, 3)), language="python", ordering=4,
+        hints=[_h("socratic_question", "For a single source you wrote distance[start] = 0 and queue = deque([start]) — what does the plural version do per source?"),
+               _h("micro_question", "Why does one shared queue (not one queue per source) produce the correct nearest distances?"),
+               _h("light_hint", "Line 1: distance[s] = 0. Line 2: queue.append(s)."),
+               _h("targeted_explanation", "Inside the seeding loop: distance[s] = 0, then queue.append(s). All sources then expand together through the unchanged BFS loop; a source enqueued after another already set its distance to 0 is simply skipped by the -1 check.")])
+
+    # --- Layer 5: nearest_source_distance ---
+    uid = _unit("nearest_source_distance", "Nearest-source distance — practice",
+                "Read the simultaneous waves as distances to the NEAREST source",
+                UnitType.PRACTICE, dims={K, E, R})
+    _ex(uid, "nearest_source_distance", InteractionType.MCQ,
+        "A town map: fire stations sit at two intersections, and every intersection needs the "
+        "number of the NEAREST station's driving distance (every road costs one step). What "
+        "quantity does one multi-source BFS compute for each intersection?",
+        *_mcq("", [("a", "The distance to station 1 (the first-listed source)"),
+                  ("b", "The distance to the nearest station — the first wave to arrive fixes the value"),
+                  ("c", "The average of the distances to both stations"),
+                  ("d", "The number of stations reachable from that intersection")], "b",
+             "All stations start at distance 0 and expand together; a vertex is discovered by whichever wave arrives first, so its recorded distance is automatically the minimum over all sources.", (3, 2, 4, 3)), ordering=1,
+        hints=[_h("socratic_question", "Both stations' waves are in the queue at distance 0 — in what order do vertices get discovered?"),
+               _h("micro_question", "When two waves could both reach an intersection next, which one sets its distance?"),
+               _h("light_hint", "First discovery in BFS is final — from WHOSE wave does that first discovery come?"),
+               _h("targeted_explanation", "The queue emits vertices ordered by nearest-source distance, so the first wave to reach each intersection is necessarily the closest one: distance[v] = minimum driving distance to any station. No post-hoc minimum needed.")])
+    _ex(uid, "nearest_source_distance", InteractionType.CODE_TRACING,
+        "Two waves collide in this graph: sources 0 and 4 expand simultaneously. What does it "
+        "print?\n\n"
+        "from collections import deque\n"
+        "graph = [[2], [3], [3], [1, 2, 4], [3]]\n"
+        "distance = [-1] * 5\n"
+        "for s in [0, 4]:\n"
+        "    distance[s] = 0\n"
+        "queue = deque([0, 4])\n"
+        "while queue:\n"
+        "    v = queue.popleft()\n"
+        "    for nxt in graph[v]:\n"
+        "        if distance[nxt] == -1:\n"
+        "            distance[nxt] = distance[v] + 1\n"
+        "            queue.append(nxt)\n"
+        "print(distance)",
+        {"code": "", "expected_output": "[0, 2, 1, 1, 0]"},
+        d((3, 3, 4, 3)), ordering=2,
+        hints=[_h("socratic_question", "Vertex 3 is adjacent to 1, 2 AND 4 — which wave gets there first?"),
+               _h("micro_question", "Vertex 2 is discovered from 0 at distance 1; vertex 3 from 4 at distance 1 — so what is left for vertex 1, and via whom?"),
+               _h("light_hint", "The wave from 4 claims vertex 3; the wave from 0 claims vertex 2; they meet around vertex 1."),
+               _h("targeted_explanation", "Queue: [0,4] → 2 and 3 get distance 1 → 1 gets 2 (first via 3). Every value is the minimum over the two sources: [0, 2, 1, 1, 0]. Where the waves meet, the winner simply found the vertex first.")])
+    _ex(uid, "nearest_source_distance", InteractionType.FREE_FORM,
+        "A teammate proposes: 'For each of the S sources, run a full single-source BFS and then "
+        "merge the S distance arrays by taking the per-vertex minimum.' This produces correct "
+        "nearest-source distances. Explain what it costs compared with one multi-source BFS, and "
+        "why the multi-source version gets the same answers in one pass.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["s(v+e)", "s*(v+e)", "s ×", "s times", "repeated", "re-traverse", "repeats", "redundant", "wasted"],
+             "text": "Repeated BFS costs O(S·(V+E)) — the same vertices and edges are traversed once per source."},
+            {"id": "p2", "keywords": ["o(v+e)", "one pass", "single pass", "once"],
+             "text": "One multi-source BFS is O(V+E): every vertex and edge is processed once."},
+            {"id": "p3", "keywords": ["distance 0", "all sources", "same queue", "shared queue", "simultaneous", "together", "expand"],
+             "text": "All sources are seeded at distance 0 in one shared queue, so the waves expand together."},
+            {"id": "p4", "keywords": ["first", "nearest", "minimum", "nondecreasing", "ordered"],
+             "text": "The queue's nondecreasing order makes first discovery the nearest-source distance — the merge happens automatically."},
+         ], "min_points": 2},
+        d((3, 2, 4, 3)), requires_ai=True, ordering=3,
+        hints=[_h("socratic_question", "How many times does the repeated version walk the middle of the graph — and how many times does one shared queue walk it?"),
+               _h("micro_question", "What is different about the STARTING STATE of the multi-source BFS compared with ordinary BFS?"),
+               _h("light_hint", "Seeding every source at distance 0 means the queue itself performs the 'take the minimum' merge."),
+               _h("targeted_explanation", "S independent BFS runs cost O(S·(V+E)) and revisit the same vertices repeatedly. One BFS seeded with all sources at distance 0 processes each vertex and edge once — O(V+E) — because the queue emits vertices in nondecreasing nearest-source distance: the first discovery is already the minimum the merge step would have computed.")])
+
+    # --- Layer 5: multi_source_bfs ---
+    uid = _unit("multi_source_bfs", "Multi-source BFS — practice",
+                "Implement multi-source BFS from scratch and handle the edge conventions",
+                UnitType.PRACTICE, dims={E, R})
+    _ex(uid, "multi_source_bfs", InteractionType.CODE_TRACING,
+        "The complete multi-source BFS on a graph with a sourceless component. What does it "
+        "print?\n\n"
+        "from collections import deque\n"
+        "graph = [[1], [0, 2], [1], [4], [3, 5], [4], []]\n"
+        "n = len(graph)\n"
+        "distance = [-1] * n\n"
+        "queue = deque()\n"
+        "for s in [0, 3]:\n"
+        "    distance[s] = 0\n"
+        "    queue.append(s)\n"
+        "while queue:\n"
+        "    v = queue.popleft()\n"
+        "    for nxt in graph[v]:\n"
+        "        if distance[nxt] == -1:\n"
+        "            distance[nxt] = distance[v] + 1\n"
+        "            queue.append(nxt)\n"
+        "print(distance)",
+        {"code": "", "expected_output": "[0, 1, 2, 0, 1, 2, -1]"},
+        d((3, 3, 4, 3)), ordering=1,
+        hints=[_h("socratic_question", "Both components get a source here — what does the wave from 3 cover, and what is left over?"),
+               _h("micro_question", "Vertex 5 is in the SAME component as source 3 — what distance does it get? And what about vertex 6?"),
+               _h("light_hint", "Two independent waves: {0,1,2} and {3,4,5}; vertex 6 is its own component with no source."),
+               _h("targeted_explanation", "Wave from 0: [0,1,2]. Wave from 3: [0,1,2] inside its component. Vertex 6 is isolated from any source, so it keeps -1: [0, 1, 2, 0, 1, 2, -1]. 'No wave reaches it' and 'unreachable' are the same -1 convention as single-source BFS.")])
+    _ex(uid, "multi_source_bfs", InteractionType.CODE_WRITING,
+        "Complete `nearest_distances_completed(graph, sources)` below: fill in the two marked "
+        "lines so the function returns, for every vertex, its distance to the NEAREST source "
+        "(-1 if no source can reach it). Do not change anything else.",
+        {"function_name": "nearest_distances_completed",
+         "starter": ("from collections import deque\n"
+                     "\n"
+                     "def nearest_distances_completed(graph, sources):\n"
+                     "    n = len(graph)\n"
+                     "    distance = [-1] * n\n"
+                     "    queue = deque()\n"
+                     "    for s in sources:\n"
+                     "        # line 1: the source is at nearest-distance 0\n"
+                     "        # line 2: every source joins the same queue\n"
+                     "        pass\n"
+                     "    while queue:\n"
+                     "        v = queue.popleft()\n"
+                     "        for nxt in graph[v]:\n"
+                     "            if distance[nxt] == -1:\n"
+                     "                distance[nxt] = distance[v] + 1\n"
+                     "                queue.append(nxt)\n"
+                     "    return distance\n"),
+         "tests": [{"args": ["graph", "sources"],
+                    "graph": [[2], [3], [3], [1, 2, 4], [3]], "sources": [0, 4],
+                    "expected": [0, 2, 1, 1, 0]},
+                   {"args": ["graph", "sources"],
+                    "graph": [[1], [0, 2], [1], [4], [3], []], "sources": [0, 3],
+                    "expected": [0, 1, 2, 0, 1, -1]},
+                   {"args": ["graph", "sources"],
+                    "graph": [[1], [0]], "sources": [0], "expected": [0, 1]},
+                   {"args": ["graph", "sources"],
+                    "graph": [[1], [0]], "sources": [], "expected": [-1, -1]}],
+         "solution": ("from collections import deque\n"
+                      "\n"
+                      "def nearest_distances_completed(graph, sources):\n"
+                      "    n = len(graph)\n"
+                      "    distance = [-1] * n\n"
+                      "    queue = deque()\n"
+                      "    for s in sources:\n"
+                      "        distance[s] = 0\n"
+                      "        queue.append(s)\n"
+                      "    while queue:\n"
+                      "        v = queue.popleft()\n"
+                      "        for nxt in graph[v]:\n"
+                      "            if distance[nxt] == -1:\n"
+                      "                distance[nxt] = distance[v] + 1\n"
+                      "                queue.append(nxt)\n"
+                      "    return distance\n")},
+        d((3, 3, 4, 3)), language="python", ordering=2,
+        hints=[_h("socratic_question", "What did the single-source version do with THE source before the loop — and what should the plural version do with each source?"),
+               _h("micro_question", "Does the while loop need any change at all compared with your single-source distance BFS?"),
+               _h("light_hint", "Line 1: distance[s] = 0. Line 2: queue.append(s)."),
+               _h("targeted_explanation", "Seed every source: distance[s] = 0, queue.append(s). The loop is the ordinary distance BFS unchanged. One source reduces to exactly your Layer 2 code; an empty source list leaves everything at -1.")])
+    _ex(uid, "multi_source_bfs", InteractionType.CODE_WRITING,
+        "Write `multi_source_distances(graph, sources)` from scratch: given an undirected "
+        "adjacency-list graph and a list of source vertices, return a list where entry v is the "
+        "minimum number of edges from v to ANY source, or -1 if v cannot reach any source. One "
+        "BFS pass — do not run a separate BFS per source.",
+        {"function_name": "multi_source_distances",
+         "starter": "from collections import deque\n\ndef multi_source_distances(graph, sources):\n    # your code here\n",
+         "tests": [{"args": ["graph", "sources"],
+                    "graph": [[1], [0, 2], [1, 3], [2, 4], [3], []], "sources": [0, 4],
+                    "expected": [0, 1, 2, 1, 0, -1]},
+                   {"args": ["graph", "sources"],
+                    "graph": [[1], [0, 2], [1], [4], [3], []], "sources": [0],
+                    "expected": [0, 1, 2, -1, -1, -1]},
+                   {"args": ["graph", "sources"],
+                    "graph": [[1], [0], [3], [2]], "sources": [1, 3],
+                    "expected": [1, 0, 1, 0]},
+                   {"args": ["graph", "sources"],
+                    "graph": [[2], [3], [0], [1]], "sources": [],
+                    "expected": [-1, -1, -1, -1]},
+                   {"args": ["graph", "sources"],
+                    "graph": [[]], "sources": [0], "expected": [0]}],
+         "solution": ("from collections import deque\n"
+                      "\n"
+                      "def multi_source_distances(graph, sources):\n"
+                      "    n = len(graph)\n"
+                      "    distance = [-1] * n\n"
+                      "    queue = deque()\n"
+                      "    for s in sources:\n"
+                      "        if distance[s] == -1:\n"
+                      "            distance[s] = 0\n"
+                      "            queue.append(s)\n"
+                      "    while queue:\n"
+                      "        v = queue.popleft()\n"
+                      "        for nxt in graph[v]:\n"
+                      "            if distance[nxt] == -1:\n"
+                      "                distance[nxt] = distance[v] + 1\n"
+                      "                queue.append(nxt)\n"
+                      "    return distance\n")},
+        d((4, 4, 4, 4)), language="python", ordering=3,
+        hints=[_h("socratic_question", "Which single-source function is this a generalization of, and what exactly is the only new piece?"),
+               _h("micro_question", "If the same source appears twice in the list, what does the -1 check do on the second visit?"),
+               _h("light_hint", "distance = [-1]*n; seed each source at 0 into ONE deque; then the standard loop."),
+               _h("targeted_explanation", "Seed all sources at distance 0 in one queue (the -1 check also absorbs duplicate sources), then run the ordinary BFS loop. O(V+E): each vertex is enqueued once and each edge examined at most twice, regardless of how many sources there are. Components with no source keep -1.")])
+    _ex(uid, "multi_source_bfs", InteractionType.MCQ,
+        "Which statement about multi-source BFS edge cases is correct?",
+        *_mcq("", [("a", "A component with no source must be special-cased with extra code"),
+                  ("b", "One source changes the algorithm — multi-source BFS is a different traversal for S=1"),
+                  ("c", "The -1 convention already handles everything: no-source components keep -1, one source reduces to ordinary BFS, and duplicates are absorbed by the -1 check"),
+                  ("d", "Duplicate sources crash the queue")], "c",
+             "No new machinery is needed: waves only travel along edges (so sourceless components stay -1), S=1 seeds exactly like single-source BFS, and a duplicate source fails the distance == -1 check and is enqueued once.", (3, 3, 4, 4)), ordering=4,
+        hints=[_h("socratic_question", "Can a wave jump from one component to another without an edge?"),
+               _h("micro_question", "Trace the seeding loop with sources [2, 2]: what happens the second time it sees vertex 2?"),
+               _h("light_hint", "Compare the S=1 case line by line with your single-source distance BFS."),
+               _h("targeted_explanation", "The -1 convention does all the work: unreachable components keep -1, one source is exactly the ordinary seeding, and a repeated source is already at distance 0 so it is never enqueued twice. Multi-source BFS is one algorithm covering the whole family.")])
+    uid = _unit("multi_source_bfs", "Multi-source BFS — apply",
+                "Recognize a nearest-source situation in an unfamiliar context",
+                UnitType.APPLY, dims={T, R})
+    _ex(uid, "multi_source_bfs", InteractionType.FREE_FORM,
+        "A city app must label every block with the walking distance to its NEAREST hospital. "
+        "There are several hospitals, streets are two-way, and every street segment counts as "
+        "one step. You are not told any algorithm name. Describe how you would model this and "
+        "compute all the labels efficiently — and say what the labels for blocks on an island "
+        "with no bridge to any hospital would be.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["vertices", "blocks", "intersections", "vertex"],
+             "text": "Models blocks/intersections as vertices and streets as edges."},
+            {"id": "p2", "keywords": ["all", "every hospital", "several", "sources", "distance 0", "queue"],
+             "text": "Seeds ALL hospitals into the queue at distance 0 simultaneously."},
+            {"id": "p3", "keywords": ["bfs", "breadth", "wave", "ripple", "level", "nearest", "first"],
+             "text": "Expands one shared wave: first arrival = distance to the nearest hospital."},
+            {"id": "p4", "keywords": ["-1", "unreachable", "no bridge", "island", "never reached"],
+             "text": "Says unreachable blocks keep -1 — no wave can reach them."},
+         ], "min_points": 3},
+        d((4, 4, 4, 4)), requires_ai=True, ordering=5,
+        hints=[_h("socratic_question", "What plays the role of a 'source' here, and how many of them are there?"),
+               _h("micro_question", "If you ran one BFS per hospital you would get S arrays — what single process produces the final labels directly?"),
+               _h("light_hint", "Seed every hospital at distance 0 into one queue and let the ordinary BFS loop run."),
+               _h("targeted_explanation", "Blocks = vertices, streets = unweighted edges. Run ONE BFS seeded with every hospital at distance 0: the shared wave guarantees each block's first discovery is its distance to the closest hospital — O(V+E). Blocks with no path to any hospital are never discovered and keep -1.")])
+
 
 def _build_variations():
     """A second, differently-angled exercise for every skill that would otherwise repeat
@@ -2713,6 +3130,31 @@ def _build_variations():
                        ("c", "Both are right: bipartiteness depends on the exploration order"),
                        ("d", "The graph must be disconnected for this to happen")], "a",
                   "Bipartiteness is a property of the GRAPH, not of the traversal order — a correct BFS check and a correct DFS check always return the same verdict.", (3, 3, 4, 4))),
+        # Layer 5 variations
+        "multi_source_initialization": (
+            "In the multi-source seeding loop, a source that was already seeded appears again in "
+            "the list. What happens if the loop still runs `distance[s] = 0; queue.append(s)` "
+            "without any check?",
+            _mcq("", [("a", "The algorithm crashes — a vertex may not be enqueued twice"),
+                       ("b", "The source sits in the queue twice, but the second copy is harmless: its distance is already 0 and nothing new is discovered"),
+                       ("c", "The source's distance is reset to 1"),
+                       ("d", "All distances shift by one")], "b",
+                  "distance[s] = 0 twice is idempotent; the second queue copy finds no undiscovered neighbors that the first did not already handle. A -1 guard absorbs duplicates cleanly if you want them out of the queue.", (3, 3, 3, 3))),
+        "nearest_source_distance": (
+            "Two sources' waves are about to reach the same vertex in the same step. Which value "
+            "does the vertex's distance end up holding?",
+            _mcq("", [("a", "The larger of the two — later arrivals overwrite"),
+                       ("b", "Both are equal in this case, but in general the LAST wave to arrive wins"),
+                       ("c", "Whichever wave arrives first — and that first arrival is necessarily the nearest source, so the value is final"),
+                       ("d", "It is undefined — simultaneous arrival must be resolved with extra code")], "c",
+                  "The queue emits vertices in nondecreasing nearest-source distance, so a later wave can never arrive from a closer source: first discovery fixes the minimum.", (3, 3, 4, 3))),
+        "multi_source_bfs": (
+            "A multi-source BFS with S sources on an adjacency-list graph: what is its total time "
+            "complexity?",
+            _mcq("", [("a", "O(S·(V+E)) — one BFS per source"),
+                       ("b", "O(V+E) — one shared queue, each vertex enqueued at most once"),
+                       ("c", "O(V·S) only"), ("d", "O((V+E)/S)")], "b",
+                  "All sources share one queue and one distance array: every vertex is discovered once, every edge examined boundedly — the source count only changes the initial seeding.", (3, 3, 4, 4))),
     }
     for skill_id, (prompt, (payload, difficulty)) in VARIATIONS.items():
         teach = [u for u in UNITS if u.skill_id == skill_id and u.unit_type == UnitType.TEACH]
@@ -2742,7 +3184,8 @@ def _apply_amendments():
             "bfs_distance", "path_reconstruction",
             "cycle_encounter_reasoning", "parent_aware_traversal", "undirected_cycle_detection",
             "two_color_constraint", "color_propagation", "color_conflict_detection",
-            "bipartite_graph"],
+            "bipartite_graph",
+            "multi_source_initialization", "nearest_source_distance", "multi_source_bfs"],
     }
     descriptions = {
         "graph_definition": "Understand a graph as a model of entities and relationships.",
@@ -2799,6 +3242,10 @@ def _apply_amendments():
         "color_propagation": "Propagate opposite colors through a traversal, with the color array doubling as the visited check.",
         "color_conflict_detection": "Recognize a same-colored edge as the constraint violation that makes a graph not 2-colorable.",
         "bipartite_graph": "Implement the full bipartite check (BFS, disconnected graphs, DFS variation) and recognize two-group situations independently.",
+        # Layer 5 descriptions
+        "multi_source_initialization": "Seed several equally valid sources at distance 0 into one queue and keep the ordinary BFS loop unchanged.",
+        "nearest_source_distance": "Read simultaneous BFS waves as distances to the nearest source, with first discovery fixing the minimum.",
+        "multi_source_bfs": "Implement one-pass multi-source BFS in O(V+E), handle sourceless components, single-source reduction, and duplicate sources.",
     }
     evidence = {
         "degree": {EvidenceType.RECOGNITION, EvidenceType.CONSTRUCTION},
@@ -2844,6 +3291,11 @@ def _apply_amendments():
         "color_conflict_detection": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.EXPLANATION},
         "bipartite_graph": {EvidenceType.RECOGNITION, EvidenceType.TRACE,
                             EvidenceType.IMPLEMENTATION, EvidenceType.APPLICATION},
+        # Layer 5 evidence requirements
+        "multi_source_initialization": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.IMPLEMENTATION},
+        "nearest_source_distance": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.EXPLANATION},
+        "multi_source_bfs": {EvidenceType.RECOGNITION, EvidenceType.TRACE,
+                             EvidenceType.IMPLEMENTATION, EvidenceType.APPLICATION},
     }
     module_order = list(modules.keys())
     skill_order = {sid: i for i, m in enumerate(module_order) for sid in modules[m]}
@@ -2872,6 +3324,7 @@ def _apply_amendments():
         ("path_reconstruction", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
         ("undirected_cycle_detection", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
         ("bipartite_graph", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
+        ("multi_source_bfs", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
     }
     problem_keys = {("bfs_implementation", InteractionType.CODE_WRITING),
                     ("dfs_implementation", InteractionType.CODE_WRITING),
@@ -2881,7 +3334,9 @@ def _apply_amendments():
                     ("bfs_distance", InteractionType.CODE_WRITING),
                     ("path_reconstruction", InteractionType.CODE_WRITING),
                     ("undirected_cycle_detection", InteractionType.CODE_WRITING),
-                    ("bipartite_graph", InteractionType.CODE_WRITING)}
+                    ("bipartite_graph", InteractionType.CODE_WRITING),
+                    ("multi_source_bfs", InteractionType.CODE_WRITING),
+                    ("multi_source_initialization", InteractionType.CODE_WRITING)}
     capabilities = {
         ("bfs_implementation", InteractionType.CODE_WRITING): {EvidenceType.TRACE, EvidenceType.RECOGNITION},
         ("dfs_implementation", InteractionType.CODE_WRITING): {EvidenceType.TRACE, EvidenceType.RECOGNITION},
@@ -2898,6 +3353,8 @@ def _apply_amendments():
         # IMPLEMENTATION via bfs_implementation's code-writing (prerequisite closure);
         # TRACE by this skill's own tracing activities
         ("bipartite_graph", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
+        ("multi_source_bfs", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
+        ("multi_source_initialization", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
     }
     for e in EXERCISES:
         role = role_by_type[e.interaction_type]

@@ -302,6 +302,54 @@ OWN_CODE = {
         "\n"
         "    return all(paint(s, 0) for s in range(len(graph)) if s not in label)\n"
     ),
+    # Layer 5 learner implementations
+    "seed_sources_completed": (
+        "from collections import deque\n\n"
+        "def seed_sources_completed(graph, sources):\n"
+        "    dist = [-1] * len(graph)\n"
+        "    pending = deque()\n"
+        "    for s in sources:\n"
+        "        dist[s] = 0\n"
+        "        pending.append(s)\n"
+        "    while pending:\n"
+        "        cur = pending.popleft()\n"
+        "        for w in graph[cur]:\n"
+        "            if dist[w] == -1:\n"
+        "                dist[w] = dist[cur] + 1\n"
+        "                pending.append(w)\n"
+        "    return dist\n"
+    ),
+    "nearest_distances_completed": (
+        "from collections import deque\n\n"
+        "def nearest_distances_completed(graph, sources):\n"
+        "    dist = [-1] * len(graph)\n"
+        "    pending = deque()\n"
+        "    for s in sources:\n"
+        "        dist[s] = 0\n"
+        "        pending.append(s)\n"
+        "    while pending:\n"
+        "        cur = pending.popleft()\n"
+        "        for w in graph[cur]:\n"
+        "            if dist[w] == -1:\n"
+        "                dist[w] = dist[cur] + 1\n"
+        "                pending.append(w)\n"
+        "    return dist\n"
+    ),
+    "multi_source_distances": (
+        "from collections import deque\n\n"
+        "def multi_source_distances(graph, sources):\n"
+        "    dist = [-1] * len(graph)\n"
+        "    pending = deque(sources)\n"
+        "    for s in sources:\n"
+        "        dist[s] = 0\n"
+        "    while pending:\n"
+        "        cur = pending.popleft()\n"
+        "        for w in graph[cur]:\n"
+        "            if dist[w] == -1:\n"
+        "                dist[w] = dist[cur] + 1\n"
+        "                pending.append(w)\n"
+        "    return dist\n"
+    ),
 }
 
 
