@@ -137,6 +137,20 @@ SKILLS = [
     # components with no source keep -1, reduces to ordinary BFS for one source
     _skill("multi_source_bfs", "Multi-source BFS", 61,
            "Module F - Integration & Application", (4, 4, 4, 4), {E, R, T}),
+
+    # --- Layer 6: Grid as Graph (Graph Slice A) ---
+    # grid_graph_model: cells are vertices, legal moves are edges — a grid IS a
+    # graph, and the graph is implicit (generated, not stored)
+    _skill("grid_graph_model", "Grid as a graph model", 62,
+           "Module F - Integration & Application", (3, 2, 3, 3), {K, R}),
+    # implicit_neighbor_generation: directions + boundary checks + blocked cells
+    # generate neighbors on demand — the mechanism that replaces an adjacency list
+    _skill("implicit_neighbor_generation", "Implicit neighbor generation", 63,
+           "Module F - Integration & Application", (3, 3, 4, 3), {K, E, R}),
+    # grid_traversal: the synthesis — BFS/DFS unchanged, reachability, components,
+    # unweighted shortest distance, multi-source BFS on grids, O(R*C)
+    _skill("grid_traversal", "Grid traversal", 64,
+           "Module F - Integration & Application", (4, 4, 4, 4), {E, R, T}),
 ]
 
 PREREQS = [
@@ -267,6 +281,21 @@ PREREQS = [
     SkillPrerequisite("multi_source_bfs", "nearest_source_distance", PS.CORE),
     SkillPrerequisite("multi_source_bfs", "bfs_implementation", PS.CORE),
     SkillPrerequisite("multi_source_bfs", "component_enumeration", PS.SUPPORTING),
+
+    # --- Layer 6: Grid as Graph ---
+    SkillPrerequisite("grid_graph_model", "vertices_edges", PS.CORE),
+    SkillPrerequisite("grid_graph_model", "adjacency", PS.CORE),
+    SkillPrerequisite("grid_graph_model", "connectedness", PS.SUPPORTING),
+    SkillPrerequisite("grid_graph_model", "bfs_intuition", PS.SUPPORTING),
+    SkillPrerequisite("implicit_neighbor_generation", "grid_graph_model", PS.CORE),
+    SkillPrerequisite("implicit_neighbor_generation", "adjacency_list", PS.CORE),
+    SkillPrerequisite("implicit_neighbor_generation", "visited_state", PS.SUPPORTING),
+    SkillPrerequisite("grid_traversal", "implicit_neighbor_generation", PS.CORE),
+    SkillPrerequisite("grid_traversal", "bfs_implementation", PS.CORE),
+    SkillPrerequisite("grid_traversal", "dfs_implementation", PS.CORE),
+    SkillPrerequisite("grid_traversal", "component_enumeration", PS.SUPPORTING),
+    SkillPrerequisite("grid_traversal", "bfs_distance", PS.SUPPORTING),
+    SkillPrerequisite("grid_traversal", "multi_source_bfs", PS.SUPPORTING),
 ]
 
 # ------------------------------------------------------------- theory ----
@@ -671,6 +700,47 @@ THEORY = {
         "hospital, nearest exit, several firefighters starting at once — any question of the form "
         "'how close is the CLOSEST of these starting points?'."
     ),
+
+    # --- Layer 6 theory ---
+    "grid_graph_model": (
+        "Here is the transfer milestone: a grid IS a graph, just drawn differently. Each cell is a "
+        "vertex — its identity is its (row, column) pair — and each legal move between neighboring "
+        "cells is an edge. You never see the edges drawn; the graph is IMPLICIT: instead of storing "
+        "an adjacency list, you will GENERATE each cell's neighbors on demand from the movement "
+        "rules. The movement rules define everything: with 4-direction movement the neighbors of "
+        "(r, c) are (r-1, c), (r+1, c), (r, c-1), (r, c+1) — when they exist — and diagonal cells "
+        "are NOT neighbors unless the problem says 8-direction movement. A blocked cell ('#', a "
+        "wall) is simply not a vertex for this problem: no edges touch it, so no traversal can "
+        "ever enter it. Nothing about this requires a new mental model — vertices, edges, "
+        "neighbors, reachability, components: all the Layer 0-5 vocabulary applies unchanged; only "
+        "the drawing changed."
+    ),
+    "implicit_neighbor_generation": (
+        "An explicit graph hands you graph[v] — the neighbor list, ready made. A grid makes you "
+        "build it on the fly, and the mechanism is three checks per candidate neighbor: offset, "
+        "boundary, blockage. For each (dr, dc) in the direction list, compute (nr, nc) = (r + dr, "
+        "c + dc); keep it only if it lies inside the grid — 0 <= nr < rows and 0 <= nc < cols — "
+        "and only if grid[nr][nc] is not blocked. Order matters: check the boundary FIRST, "
+        "otherwise grid[nr][nc] indexes outside the grid and crashes. This little loop replaces "
+        "the adjacency list everywhere: wherever BFS/DFS iterated graph[v], the grid version "
+        "iterates the direction list and generates valid neighbors. One caution: 'visited' and "
+        "'blocked' are different ideas — a blocked cell was never a vertex; a visited cell is a "
+        "vertex the traversal has already claimed. And mark cells visited when you enqueue them, "
+        "exactly the BFS convention from Layer 0."
+    ),
+    "grid_traversal": (
+        "Now watch what happens when you put the pieces together: a grid BFS is ordinary BFS whose "
+        "neighbor loop is the generator. The traversal algorithm does not fundamentally change — "
+        "the neighbor-generation mechanism changed. Everything you already own transfers whole: "
+        "reachability = can the traversal reach the cell at all; connected components = the outer "
+        "loop over unvisited OPEN cells counts regions (number of islands); unweighted shortest "
+        "path = BFS distance, since every move costs one; nearest source = Layer 5's multi-source "
+        "BFS seeded with several cells at distance 0; and DFS works just as well whenever no "
+        "distance is needed. Complexity: an R×C grid has V = R·C cells and each open cell has at "
+        "most 4 neighbors, so E = O(R·C) — BFS/DFS cost O(R·C) time and O(R·C) space for the "
+        "visited/distance structure. 8-direction movement is only a different direction list: "
+        "same algorithm, up to 8 generated neighbors per cell, still O(R·C)."
+    ),
 }
 
 # The shared demo graph used by several deterministic exercises.
@@ -1042,6 +1112,30 @@ _mcq_bank("multi_source_bfs", "A graph has two components; only the first contai
            ("c", "-1 — no wave can ever reach a component without a source"),
            ("d", "The distances are undefined — the algorithm crashes")], "c",
           "Waves only cross edges. A component with no source is never entered, so its vertices keep the -1 'never discovered' value — the same convention as ordinary BFS on disconnected graphs.", (3, 3, 4, 4))
+
+# Layer 6 MCQ banks
+_mcq_bank("grid_graph_model", "A warehouse floor is a grid of tiles; some tiles hold shelves "
+          "(robots cannot enter). A robot can move up/down/left/right one tile per step. In "
+          "graph terms, what are the vertices, edges, and blocked tiles?",
+          [("a", "Vertices = robots; edges = tiles; blocked tiles are removed vertices"),
+           ("b", "Vertices = open tiles (identified by row/column); edges = legal one-step moves between neighboring open tiles; shelf tiles are not vertices at all"),
+           ("c", "Vertices = rows and columns; edges = shelf positions"),
+           ("d", "Grids cannot be modeled as graphs without storing an adjacency list first")], "b",
+          "Each open cell is a vertex named by its (row, column); legal moves define edges; a blocked cell is not a vertex for the problem — and the graph is implicit: neighbors are generated, not stored.", (3, 2, 3, 3))
+_mcq_bank("implicit_neighbor_generation", "Generating the neighbors of (r, c) with directions "
+          "[(-1, 0), (1, 0), (0, -1), (0, 1)]: in what order should the two guards run?",
+          [("a", "Blockage first — grid[nr][nc] != '#' — then the boundary check"),
+           ("b", "Boundary first — 0 <= nr < rows and 0 <= nc < cols — then the blockage check"),
+           ("c", "Order does not matter"),
+           ("d", "No checks are needed — Python clamps out-of-range indexes")], "b",
+          "The boundary check must come first: indexing grid[nr][nc] outside the grid raises an error (or wraps around) before the blockage check could run.", (3, 3, 4, 3))
+_mcq_bank("grid_traversal", "An R×C grid where each open cell connects to its 4 neighbors: BFS/DFS "
+          "over all cells costs...",
+          [("a", "O(R + C) — one pass per row and column"),
+           ("b", "O(R·C) — V = R·C cells, E = O(R·C) implicit edges"),
+           ("c", "O(R²·C²) — grids are denser than graphs"),
+           ("d", "O(4^(R·C)) — every cell branches 4 ways")], "b",
+          "A grid is just a graph with V = R·C vertices and at most 4 edges per vertex: traversal visits each cell once and scans each neighbor relation a bounded number of times.", (3, 3, 4, 4))
 
 _mcq_bank("adjacency", "Two vertices are adjacent when...",
           [("a", "An edge connects them directly"),
@@ -2960,6 +3054,410 @@ def _build_practice():
                _h("light_hint", "Seed every hospital at distance 0 into one queue and let the ordinary BFS loop run."),
                _h("targeted_explanation", "Blocks = vertices, streets = unweighted edges. Run ONE BFS seeded with every hospital at distance 0: the shared wave guarantees each block's first discovery is its distance to the closest hospital — O(V+E). Blocks with no path to any hospital are never discovered and keep -1.")])
 
+    # --- Layer 6: grid_graph_model ---
+    uid = _unit("grid_graph_model", "Grid as a graph model — practice",
+                "See cells as vertices, moves as edges, and the graph as implicit",
+                UnitType.PRACTICE, dims={K, R})
+    _ex(uid, "grid_graph_model", InteractionType.CODE_TRACING,
+        "This code makes a grid's implicit graph EXPLICIT for one moment: it generates the "
+        "4-direction neighbors of every cell and prints them. What does it print?\n\n"
+        "grid = [\"...\", \"...\"]\n"
+        "rows, cols = 2, 3\n"
+        "directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]\n"
+        "for r in range(rows):\n"
+        "    for c in range(cols):\n"
+        "        nbrs = []\n"
+        "        for dr, dc in directions:\n"
+        "            nr, nc = r + dr, c + dc\n"
+        "            if 0 <= nr < rows and 0 <= nc < cols:\n"
+        "                nbrs.append((nr, nc))\n"
+        "        print((r, c), nbrs)",
+        {"code": "", "expected_output": "(0, 0) [(1, 0), (0, 1)]\n(0, 1) [(1, 1), (0, 0), (0, 2)]\n"
+         "(0, 2) [(1, 2), (0, 1)]\n(1, 0) [(0, 0), (1, 1)]\n(1, 1) [(0, 1), (1, 0), (1, 2)]\n"
+         "(1, 2) [(0, 2), (1, 1)]"},
+        d((3, 2, 3, 3)), ordering=1,
+        hints=[_h("socratic_question", "Corner cells touch fewer than 4 cells — which offsets fall outside the grid where?"),
+               _h("micro_question", "The offsets are up, down, left, right in that order — in what order do (1, 1)'s valid neighbors appear?"),
+               _h("light_hint", "For each cell the list holds only the in-bounds neighbors, in the directions order: up, down, left, right."),
+               _h("targeted_explanation", "Every cell gets only its in-bounds neighbors, listed in directions order. Corner (0, 0) has just down and right: [(1, 0), (0, 1)]. Edge cells have 3, the interior (1, 1) has 4. If this dict were stored, it would BE an adjacency list — the grid generated it on demand instead.")])
+    _ex(uid, "grid_graph_model", InteractionType.MCQ,
+        "Same warehouse story: a teammate insists 'a grid is not really a graph until you build "
+        "an adjacency list.' What is the correct assessment?",
+        *_mcq("", [("a", "She is right — without stored edges there is no graph"),
+                  ("b", "The grid is an implicit graph: cells are vertices and legal moves are edges whether or not anyone stores them; an adjacency list is just one way to make it explicit"),
+                  ("c", "A grid becomes a graph only after BFS runs on it"),
+                  ("d", "Grids are a special data structure outside graph theory")], "b",
+             "A graph is vertices plus an adjacency relation — the grid's movement rules define both. Stored adjacency lists are a convenience, not the definition.", (3, 2, 4, 3)), ordering=2,
+        hints=[_h("socratic_question", "What did the previous trace generate — and was it creating the graph or just describing it?"),
+               _h("micro_question", "Did reachability between two tiles depend on any list being stored?"),
+               _h("light_hint", "The neighbor relation exists in the movement rules; code can generate it whenever needed."),
+               _h("targeted_explanation", "The movement rules ARE the edge set. Whether you store adjacency or generate neighbors on demand, the same vertices and edges exist — that is what 'implicit graph' means. Generation merely avoids the memory cost of storing R·C lists.")])
+    _ex(uid, "grid_graph_model", InteractionType.FREE_FORM,
+        "A theme-park map is a 10×10 grid of walkway tiles; hedges block some tiles; visitors "
+        "step up/down/left/right one tile at a time and CANNOT cut diagonally between two "
+        "hedges. Explain the graph model: what are the vertices and their names, what are the "
+        "edges, what do the hedges mean for the graph, and why are diagonal tiles not adjacent "
+        "here?",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["cell", "tile", "vertices", "vertex", "row", "column", "(r", "r, c"],
+             "text": "Open tiles are the vertices, identified by their (row, column) pair."},
+            {"id": "p2", "keywords": ["edges", "moves", "step", "neighbors", "adjacent", "legal"],
+             "text": "Legal one-step moves between neighboring open tiles are the edges."},
+            {"id": "p3", "keywords": ["blocked", "not a vertex", "no edges", "wall", "hedge", "removed", "skip"],
+             "text": "Blocked tiles are not vertices for this problem — no edges touch them."},
+            {"id": "p4", "keywords": ["4-direction", "four", "not diagonal", "no diagonal", "diagonals are not", "movement rule", "8"],
+             "text": "Diagonals are not neighbors under 4-direction movement — the movement rules define adjacency."},
+         ], "min_points": 3},
+        d((3, 2, 4, 3)), requires_ai=True, ordering=3,
+        hints=[_h("socratic_question", "In the friend-network models, what played the role of a vertex — and what is the 'entity' on a grid?"),
+               _h("micro_question", "Can two tiles be neighbors without a legal move between them?"),
+               _h("light_hint", "Adjacency follows the movement rules, not geometric closeness."),
+               _h("targeted_explanation", "Vertices = open tiles, each named by (row, column). Edges = legal one-step 4-direction moves between open neighbors. Hedge tiles are not vertices at all — the traversal can never stand on them. Diagonal tiles touch geometrically but no legal move joins them, so they are not adjacent: movement rules, not geometry, define the edges.")])
+
+    # --- Layer 6: implicit_neighbor_generation ---
+    uid = _unit("implicit_neighbor_generation", "Implicit neighbor generation — practice",
+                "Generate valid neighbors: offsets, boundary checks, blocked cells",
+                UnitType.PRACTICE, dims={K, E, R})
+    _ex(uid, "implicit_neighbor_generation", InteractionType.CODE_TRACING,
+        "This generator respects boundaries and blocked cells. What does it print?\n\n"
+        "grid = [\"..#\",\n"
+        "        \"...\",\n"
+        "        \"#..\"]\n"
+        "rows, cols = 3, 3\n"
+        "directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]\n\n"
+        "def valid_neighbors(r, c):\n"
+        "    out = []\n"
+        "    for dr, dc in directions:\n"
+        "        nr, nc = r + dr, c + dc\n"
+        "        if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] != '#':\n"
+        "            out.append((nr, nc))\n"
+        "    return out\n\n"
+        "print(valid_neighbors(0, 0))\n"
+        "print(valid_neighbors(2, 2))\n"
+        "print(valid_neighbors(1, 2))",
+        {"code": "", "expected_output": "[(1, 0), (0, 1)]\n[(1, 2), (2, 1)]\n[(2, 2), (1, 1)]"},
+        d((3, 3, 4, 3)), ordering=1,
+        hints=[_h("socratic_question", "For (0, 0), which offsets point outside the grid — and what does the blockage check then see for the rest?"),
+               _h("micro_question", "Cell (1, 2): its up-neighbor (0, 2) is '#' — does it make the list? And what about (2, 2)'s up-neighbor (1, 2)?"),
+               _h("light_hint", "In-bounds AND open, in directions order (up, down, left, right)."),
+               _h("targeted_explanation", "(0, 0): only down (1, 0) and right (0, 1) are in bounds; both open. (2, 2): up (1, 2) and left (2, 1) are in bounds and open. (1, 2): up is (0, 2) — in bounds but '#', dropped; down (2, 2) and left (1, 1) survive; right is out of bounds → [(2, 2), (1, 1)]. In-bounds AND open, always in directions order.")])
+    _ex(uid, "implicit_neighbor_generation", InteractionType.MCQ,
+        "In a grid BFS, what is the difference between a BLOCKED cell and a VISITED cell?",
+        *_mcq("", [("a", "They are the same — both are skipped"),
+                  ("b", "A blocked cell was never a vertex (no edges touch it); a visited cell is a vertex the traversal already claimed — different roles, both skipped"),
+                  ("c", "Visited cells must be re-checked in case a shorter route appears"),
+                  ("d", "Blocked cells are enqueued but never expanded")], "b",
+             "Blocked = not part of the graph for this problem (the generator drops it). Visited = part of the graph, already discovered (the queue/visited structure skips it). Neither is ever expanded, but for different reasons.", (3, 3, 4, 3)), ordering=2,
+        hints=[_h("socratic_question", "Could a blocked cell ever be reached at all? Could a visited cell be reached again?"),
+               _h("micro_question", "Which check lives in the neighbor GENERATOR, and which lives in the TRAVERSAL?"),
+               _h("light_hint", "One is a property of the map; the other is a property of the run."),
+               _h("targeted_explanation", "Blocked is a property of the map: the cell is excluded from the graph before any traversal starts. Visited is a property of the current run: the cell is a real vertex that the traversal already discovered. The generator drops blocked cells; the BFS skips visited ones.")])
+    _ex(uid, "implicit_neighbor_generation", InteractionType.FREE_FORM,
+        "An explicit graph hands you a ready-made neighbor list: graph[v]. A grid does not. "
+        "Explain in your own words how the direction-offset loop replaces that adjacency list, "
+        "and why the boundary check must run BEFORE the blockage check.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["offset", "offsets", "directions", "dr", "dc", "delta", "+ dr", "generate"],
+             "text": "The direction list generates candidate neighbors by adding offsets to (r, c)."},
+            {"id": "p2", "keywords": ["boundary", "in bounds", "inside", "0 <=", "range", "edge of"],
+             "text": "The boundary check keeps only candidates that lie inside the grid."},
+            {"id": "p3", "keywords": ["before", "first", "crash", "indexerror", "out of range", "order"],
+             "text": "Boundary first: indexing grid[nr][nc] outside the grid crashes before the blockage test could run."},
+            {"id": "p4", "keywords": ["on demand", "implicit", "instead of storing", "no adjacency list", "same role", "replaces"],
+             "text": "Generated on demand, the loop plays exactly the role graph[v] played — no stored list needed."},
+         ], "min_points": 2},
+        d((3, 2, 4, 3)), requires_ai=True, ordering=3,
+        hints=[_h("socratic_question", "What does the traversal do with graph[v] in the explicit version — and what plays that role in the grid version?"),
+               _h("micro_question", "If grid[nr][nc] is evaluated while nr = -1, what happens before any wall check?"),
+               _h("light_hint", "Offsets create candidates; two guards filter them; boundary must gate indexing."),
+               _h("targeted_explanation", "The offsets produce candidate coordinates; the boundary check keeps only in-grid ones; the blockage check drops walls. Run the boundary check first, because the blockage check must READ grid[nr][nc] — safe only after the boundary test. Generated on demand, this loop is the grid's adjacency list.")])
+    _ex(uid, "implicit_neighbor_generation", InteractionType.CODE_WRITING,
+        "Write `valid_neighbors(grid, r, c)` that returns the list of 4-direction neighbor "
+        "coordinates (nr, nc) of cell (r, c): inside the grid AND on an open cell ('.'). "
+        "Candidates are generated in the directions order up, down, left, right: "
+        "directions = [(-1, 0), (1, 0), (0, -1), (0, 1)]. grid is a list of strings, "
+        "'.' = open, '#' = blocked.",
+        {"function_name": "valid_neighbors",
+         "starter": "def valid_neighbors(grid, r, c):\n    # your code here\n",
+         "tests": [{"args": ["grid", "r", "c"],
+                    "grid": ["...", "...", ".."], "r": 1, "c": 1,
+                    "expected": [[0, 1], [2, 1], [1, 0], [1, 2]]},
+                   {"args": ["grid", "r", "c"],
+                    "grid": ["..#"], "r": 0, "c": 0,
+                    "expected": [[0, 1]]},
+                   {"args": ["grid", "r", "c"],
+                    "grid": ["..#", "...", ".#."], "r": 0, "c": 1,
+                    "expected": [[1, 1], [0, 0]]},
+                   {"args": ["grid", "r", "c"],
+                    "grid": ["#"], "r": 0, "c": 0,
+                    "expected": []}],
+         "solution": ("def valid_neighbors(grid, r, c):\n"
+                      "    rows, cols = len(grid), len(grid[0])\n"
+                      "    out = []\n"
+                      "    for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:\n"
+                      "        nr, nc = r + dr, c + dc\n"
+                      "        if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] != '#':\n"
+                      "            out.append([nr, nc])\n"
+                      "    return out\n")},
+        d((3, 3, 4, 3)), language="python", ordering=3,
+        hints=[_h("socratic_question", "What two conditions must every candidate (nr, nc) satisfy — and in which order do you test them?"),
+               _h("micro_question", "For grid ['..#'], which of (0, 0)'s four candidates survive?"),
+               _h("light_hint", "Loop over the direction list; append (nr, nc) only when in bounds and grid[nr][nc] == '.'."),
+               _h("targeted_explanation", "For each (dr, dc): compute (nr, nc) = (r + dr, c + dc); test the boundary FIRST (0 <= nr < rows and 0 <= nc < cols) so the indexing is safe, then the blockage (grid[nr][nc] != '#'). Append survivors in directions order. This loop is the grid's adjacency-list replacement.")])
+
+    # --- Layer 6: grid_traversal ---
+    uid = _unit("grid_traversal", "Grid traversal — practice",
+                "Run BFS/DFS over implicit grid graphs: reachability, components, shortest paths",
+                UnitType.PRACTICE, dims={E, R})
+    _ex(uid, "grid_traversal", InteractionType.CODE_TRACING,
+        "A grid BFS with distances. What does it print?\n\n"
+        "from collections import deque\n"
+        "grid = [\"..\",\n"
+        "        \".#\"]\n"
+        "rows, cols = 2, 2\n"
+        "distance = [[-1] * cols for _ in range(rows)]\n"
+        "distance[0][0] = 0\n"
+        "queue = deque([(0, 0)])\n"
+        "while queue:\n"
+        "    r, c = queue.popleft()\n"
+        "    for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:\n"
+        "        nr, nc = r + dr, c + dc\n"
+        "        if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == '.' \\\n"
+        "                and distance[nr][nc] == -1:\n"
+        "            distance[nr][nc] = distance[r][c] + 1\n"
+        "            queue.append((nr, nc))\n"
+        "print(distance)",
+        {"code": "", "expected_output": "[[0, 1], [1, -1]]"},
+        d((3, 3, 4, 3)), ordering=1,
+        hints=[_h("socratic_question", "The distance array plays the visited role again — which cells does the wave from (0, 0) reach?"),
+               _h("micro_question", "Cell (1, 1) is '#' — is it ever a vertex? What does its distance entry stay?"),
+               _h("light_hint", "(0, 1) and (1, 0) are one step away; nothing reaches (1, 1) — it is blocked."),
+               _h("targeted_explanation", "Wave from (0, 0): neighbors (1, 0) and (0, 1) get distance 1. (1, 1) is blocked — never a vertex — so its entry keeps -1: [[0, 1], [1, -1]]. Identical to the graph distance BFS, with the generator replacing the adjacency list.")])
+    _ex(uid, "grid_traversal", InteractionType.CODE_WRITING,
+        "Complete the grid BFS below: fill in the two marked lines so `grid_shortest_completed` "
+        "returns the minimum number of moves from the open cell `start` to the open cell "
+        "`goal`, or -1 if the goal cannot be reached. Every move costs one; movement is "
+        "4-directional; '#' cells are blocked. Do not change anything else.",
+        {"function_name": "grid_shortest_completed",
+         "starter": ("from collections import deque\n"
+                     "\n"
+                     "def grid_shortest_completed(grid, start, goal):\n"
+                     "    rows, cols = len(grid), len(grid[0])\n"
+                     "    sr, sc = start\n"
+                     "    gr, gc = goal\n"
+                     "    distance = [[-1] * cols for _ in range(rows)]\n"
+                     "    distance[sr][sc] = 0\n"
+                     "    queue = deque([(sr, sc)])\n"
+                     "    while queue:\n"
+                     "        r, c = queue.popleft()\n"
+                     "        if (r, c) == (gr, gc):\n"
+                     "            return distance[r][c]\n"
+                     "        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:\n"
+                     "            nr, nc = r + dr, c + dc\n"
+                     "            # line 1: keep only in-bounds, open, undiscovered cells\n"
+                     "            # line 2: record the distance and enqueue the cell\n"
+                     "            pass\n"
+                     "    return -1\n"),
+         "tests": [{"args": ["grid", "start", "goal"],
+                    "grid": ["...", ".#.", "..."], "start": (0, 0), "goal": (2, 2),
+                    "expected": 4},
+                   {"args": ["grid", "start", "goal"],
+                    "grid": ["..#"], "start": (0, 0), "goal": (0, 2),
+                    "expected": -1},
+                   {"args": ["grid", "start", "goal"],
+                    "grid": ["."], "start": (0, 0), "goal": (0, 0),
+                    "expected": 0}],
+         "solution": ("from collections import deque\n"
+                      "\n"
+                      "def grid_shortest_completed(grid, start, goal):\n"
+                      "    rows, cols = len(grid), len(grid[0])\n"
+                      "    sr, sc = start\n"
+                      "    gr, gc = goal\n"
+                      "    distance = [[-1] * cols for _ in range(rows)]\n"
+                      "    distance[sr][sc] = 0\n"
+                      "    queue = deque([(sr, sc)])\n"
+                      "    while queue:\n"
+                      "        r, c = queue.popleft()\n"
+                      "        if (r, c) == (gr, gc):\n"
+                      "            return distance[r][c]\n"
+                      "        for dr, dc in [(-1, 0), (1, 0), (0, -1), (0, 1)]:\n"
+                      "            nr, nc = r + dr, c + dc\n"
+                      "            if 0 <= nr < rows and 0 <= nc < cols \
+"
+                      "                    and grid[nr][nc] == '.' and distance[nr][nc] == -1:\n"
+                      "                distance[nr][nc] = distance[r][c] + 1\n"
+                      "                queue.append((nr, nc))\n"
+                      "    return -1\n")},
+        d((3, 3, 4, 3)), language="python", ordering=2,
+        hints=[_h("socratic_question", "Which single condition combines the boundary check, the blockage check, and the visited check?"),
+               _h("micro_question", "A newly discovered cell's distance is one more than whose distance?"),
+               _h("light_hint", "Line 1: if 0 <= nr < rows and 0 <= nc < cols and grid[nr][nc] == '.' and distance[nr][nc] == -1. Line 2: distance[nr][nc] = distance[r][c] + 1; queue.append((nr, nc))."),
+               _h("targeted_explanation", "The generator's boundary + blockage checks merge with the distance-array visited check into one condition. On discovery: distance[nr][nc] = distance[r][c] + 1 and enqueue. BFS's first arrival at the goal is the minimum move count; -1 means no route.")])
+    _ex(uid, "grid_traversal", InteractionType.CODE_WRITING,
+        "Write `count_islands(grid)` for a grid of '.' (open water/walkable) and '#' cells — "
+        "count the connected regions of '.' cells, where cells connect 4-directionally (up, "
+        "down, left, right). This is the Layer 1 component outer loop wearing a grid costume.",
+        {"function_name": "count_islands",
+         "starter": "def count_islands(grid):\n    # your code here\n",
+         "tests": [{"args": ["grid"],
+                    "grid": [".#.", ".#.", ".#."], "expected": 2},
+                   {"args": ["grid"],
+                    "grid": ["..", ".."], "expected": 1},
+                   {"args": ["grid"],
+                    "grid": ["##", "##"], "expected": 0},
+                   {"args": ["grid"],
+                    "grid": [".#", "#."], "expected": 2},
+                   {"args": ["grid"],
+                    "grid": [], "expected": 0}],
+         "solution": ("def count_islands(grid):\n"
+                      "    rows, cols = len(grid), len(grid[0]) if grid else 0\n"
+                      "    seen = [[False] * cols for _ in range(rows)]\n"
+                      "    regions = 0\n"
+                      "    for r in range(rows):\n"
+                      "        for c in range(cols):\n"
+                      "            if grid[r][c] != '.' or seen[r][c]:\n"
+                      "                continue\n"
+                      "            regions += 1\n"
+                      "            seen[r][c] = True\n"
+                      "            stack = [(r, c)]\n"
+                      "            while stack:\n"
+                      "                cr, cc = stack.pop()\n"
+                      "                for nr, nc in ((cr - 1, cc), (cr + 1, cc),\n"
+                      "                               (cr, cc - 1), (cr, cc + 1)):\n"
+                      "                    if 0 <= nr < rows and 0 <= nc < cols \
+"
+                      "                            and grid[nr][nc] == '.' and not seen[nr][nc]:\n"
+                      "                        seen[nr][nc] = True\n"
+                      "                        stack.append((nr, nc))\n"
+                      "    return regions\n")},
+        d((4, 4, 4, 4)), language="python", ordering=3,
+        hints=[_h("socratic_question", "In the component outer loop, what triggered a new traversal — and what is its grid equivalent?"),
+               _h("micro_question", "Why is each flood fill guaranteed to visit exactly one region?"),
+               _h("light_hint", "Scan every cell; on an unvisited open cell, start a traversal (BFS or DFS) that marks its whole region; count the starts."),
+               _h("targeted_explanation", "Two nested loops scan all R·C cells. An open, unvisited cell is a new region: increment the counter and flood-fill (stack DFS or BFS) through generated neighbors, marking cells visited. One traversal = one component — the count of traversals is the region count. Total O(R·C).")])
+    _ex(uid, "grid_traversal", InteractionType.CODE_WRITING,
+        "Controlled variation — 8-direction movement: write `count_regions_8dir(grid)`, the "
+        "same region count but where cells also connect DIAGONALLY (8-direction movement). "
+        "Reuse your 4-direction solution and change only the neighbor generation.",
+        {"function_name": "count_regions_8dir",
+         "starter": "def count_regions_8dir(grid):\n    # your code here\n",
+         "tests": [{"args": ["grid"],
+                    "grid": [".#", "#."], "expected": 1},
+                   {"args": ["grid"],
+                    "grid": [".#.", ".#.", ".#."], "expected": 2},
+                   {"args": ["grid"],
+                    "grid": ["##", "##"], "expected": 0},
+                   {"args": ["grid"],
+                    "grid": ["..."], "expected": 1}],
+         "solution": ("def count_regions_8dir(grid):\n"
+                      "    rows, cols = len(grid), len(grid[0]) if grid else 0\n"
+                      "    seen = [[False] * cols for _ in range(rows)]\n"
+                      "    dirs = [(-1, -1), (-1, 0), (-1, 1), (0, -1),\n"
+                      "            (0, 1), (1, -1), (1, 0), (1, 1)]\n"
+                      "    regions = 0\n"
+                      "    for r in range(rows):\n"
+                      "        for c in range(cols):\n"
+                      "            if grid[r][c] != '.' or seen[r][c]:\n"
+                      "                continue\n"
+                      "            regions += 1\n"
+                      "            seen[r][c] = True\n"
+                      "            stack = [(r, c)]\n"
+                      "            while stack:\n"
+                      "                cr, cc = stack.pop()\n"
+                      "                for dr, dc in dirs:\n"
+                      "                    nr, nc = cr + dr, cc + dc\n"
+                      "                    if 0 <= nr < rows and 0 <= nc < cols \
+"
+                      "                            and grid[nr][nc] == '.' and not seen[nr][nc]:\n"
+                      "                        seen[nr][nc] = True\n"
+                      "                        stack.append((nr, nc))\n"
+                      "    return regions\n")},
+        d((4, 4, 4, 4)), language="python", ordering=4,
+        hints=[_h("socratic_question", "Did the algorithm ever depend on there being exactly four offsets?"),
+               _h("micro_question", "Which input changes its answer between 4- and 8-direction movement — a region joined only at a corner?"),
+               _h("light_hint", "Extend the direction list with the four diagonals; everything else is untouched."),
+               _h("targeted_explanation", "Only the direction list grows to 8 offsets — the outer loop, flood fill, and counting are identical. The diagonal-touching [.# / #.] grid now counts as ONE region (it was two under 4-direction movement): adjacency is defined by the movement rules, and the rules changed.")])
+    _ex(uid, "grid_traversal", InteractionType.CODE_WRITING,
+        "Compose with Layer 5 — multi-source grid BFS: write `grid_multi_source_distances(grid, "
+        "sources)` that returns a distance grid (list of lists) where each open cell holds its "
+        "distance to the NEAREST cell in `sources`, and blocked or unreachable cells hold -1. "
+        "4-direction movement; one BFS pass.",
+        {"function_name": "grid_multi_source_distances",
+         "starter": "from collections import deque\n\ndef grid_multi_source_distances(grid, sources):\n    # your code here\n",
+         "tests": [{"args": ["grid", "sources"],
+                    "grid": ["...", "..."], "sources": [(0, 0), (0, 2)],
+                    "expected": [[0, 1, 0], [1, 2, 1]]},
+                   {"args": ["grid", "sources"],
+                    "grid": ["..", ".#"], "sources": [(0, 0)],
+                    "expected": [[0, 1], [1, -1]]},
+                   {"args": ["grid", "sources"],
+                    "grid": ["..", ".."], "sources": [(1, 1)],
+                    "expected": [[2, 1], [1, 0]]},
+                   {"args": ["grid", "sources"],
+                    "grid": ["#."], "sources": [(0, 0)],
+                    "expected": [[-1, -1]]}],
+         "solution": ("from collections import deque\n"
+                      "\n"
+                      "def grid_multi_source_distances(grid, sources):\n"
+                      "    rows, cols = len(grid), len(grid[0])\n"
+                      "    distance = [[-1] * cols for _ in range(rows)]\n"
+                      "    queue = deque()\n"
+                      "    for sr, sc in sources:\n"
+                      "        if grid[sr][sc] == '.' and distance[sr][sc] == -1:\n"
+                      "            distance[sr][sc] = 0\n"
+                      "            queue.append((sr, sc))\n"
+                      "    while queue:\n"
+                      "        r, c = queue.popleft()\n"
+                      "        for nr, nc in ((r - 1, c), (r + 1, c),\n"
+                      "                       (r, c - 1), (r, c + 1)):\n"
+                      "            if 0 <= nr < rows and 0 <= nc < cols \
+"
+                      "                    and grid[nr][nc] == '.' and distance[nr][nc] == -1:\n"
+                      "                distance[nr][nc] = distance[r][c] + 1\n"
+                      "                queue.append((nr, nc))\n"
+                      "    return distance\n")},
+        d((4, 4, 4, 4)), language="python", ordering=5,
+        hints=[_h("socratic_question", "What did the Layer 5 seeding loop do for a LIST of source vertices — and what changes for a list of source CELLS?"),
+               _h("micro_question", "Where two source waves would meet, which one wins — and does any tie-breaking code exist?"),
+               _h("light_hint", "Seed every source cell at distance 0 into one queue; run the grid BFS unchanged."),
+               _h("targeted_explanation", "Seed every source cell at distance 0 into the shared queue, then the ordinary grid BFS loop. The nondecreasing queue order makes first discovery the nearest-source distance — no tie-breaking needed. Blocked cells never enter the queue and stay -1; one pass, O(R·C).")])
+    _ex(uid, "grid_traversal", InteractionType.MCQ,
+        "Your grid BFS is 3 lines longer than your graph BFS. What are those lines?",
+        *_mcq("", [("a", "Sorting the cells and hashing the distances"),
+                  ("b", "The direction list, the boundary check, and the blockage check — the implicit neighbor generation"),
+                  ("c", "A special grid-queue that stores (row, column) pairs differently"),
+                  ("d", "Recursion depth bookkeeping for the grid's DFS variant")], "b",
+             "The traversal loop is byte-for-byte the ordinary BFS loop; the only new machinery is generating neighbors: offsets, boundary test, blockage test. That is the whole difference.", (3, 3, 4, 4)), ordering=6,
+        hints=[_h("socratic_question", "In the graph BFS, where did the neighbor list come from — and where does the grid version get its neighbors?"),
+               _h("micro_question", "Does the queue, the visited structure, or the distance update change at all?"),
+               _h("light_hint", "Compare the inner for-loops of both BFS versions line by line."),
+               _h("targeted_explanation", "graph[v] handed over a ready neighbor list; the grid version computes candidates from the direction list and filters them with the boundary and blockage checks. Queue mechanics, visited handling, and distance updates are unchanged — the traversal algorithm did not fundamentally change.")])
+    uid = _unit("grid_traversal", "Grid traversal — apply",
+                "Recognize a grid-graph situation in an unfamiliar context",
+                UnitType.APPLY, dims={T, R})
+    _ex(uid, "grid_traversal", InteractionType.FREE_FORM,
+        "A game level is a rectangular map of floor tiles and wall tiles. The designer asks "
+        "three questions: (1) is the treasure room reachable from the spawn point? (2) what is "
+        "the fewest number of moves between them? (3) how many separate floor regions does the "
+        "level contain? You are not told any algorithm names. Describe how you would model the "
+        "map and answer each question.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["grid", "graph", "implicit", "cells", "tiles", "vertices"],
+             "text": "Models the map as an implicit graph: floor tiles are vertices, steps between neighboring tiles are edges."},
+            {"id": "p2", "keywords": ["traversal", "bfs", "dfs", "reach", "flood", "explore"],
+             "text": "Answers (1) with a traversal from the spawn tile."},
+            {"id": "p3", "keywords": ["bfs", "shortest", "fewest", "minimum", "level", "wave", "distance"],
+             "text": "Answers (2) with BFS distance — every move costs one."},
+            {"id": "p4", "keywords": ["component", "outer loop", "regions", "count", "every unvisited", "islands"],
+             "text": "Answers (3) with the component outer loop — count flood fills from unvisited floor tiles."},
+         ], "min_points": 3},
+        d((4, 4, 4, 4)), requires_ai=True, ordering=7,
+        hints=[_h("socratic_question", "What plays the role of vertices and edges if the map never shows a graph?"),
+               _h("micro_question", "Which of the three questions needs DISTANCES, and which only needs reachability or counting?"),
+               _h("light_hint", "(1) any traversal; (2) BFS specifically; (3) the outer loop over unvisited floor tiles."),
+               _h("targeted_explanation", "The map is an implicit graph: floor tiles are (row, column) vertices; 4-direction steps are edges; walls are not vertices. (1) Traverse from spawn — reachable or not. (2) BFS distance: every move costs one, so first arrival is minimal. (3) Outer loop over unvisited open tiles, counting flood fills — the regions are connected components. All O(R·C).")])
+
+
 
 def _build_variations():
     """A second, differently-angled exercise for every skill that would otherwise repeat
@@ -3155,6 +3653,30 @@ def _build_variations():
                        ("b", "O(V+E) — one shared queue, each vertex enqueued at most once"),
                        ("c", "O(V·S) only"), ("d", "O((V+E)/S)")], "b",
                   "All sources share one queue and one distance array: every vertex is discovered once, every edge examined boundedly — the source count only changes the initial seeding.", (3, 3, 4, 4))),
+        # Layer 6 variations
+        "grid_graph_model": (
+            "Two floor tiles sit diagonally next to each other, both open. Under 4-direction "
+            "movement, are they adjacent in the implicit graph?",
+            _mcq("", [("a", "Yes — adjacency means geometric touching"),
+                       ("b", "No — no legal 4-direction move joins them, and movement rules define the edges"),
+                       ("c", "Only if both are open"),
+                       ("d", "Grids have no adjacency concept")], "b",
+                  "Edges are legal moves, not geometry: diagonal tiles touch but no up/down/left/right step joins them, so they are not neighbors until the problem allows 8-direction movement.", (3, 2, 3, 3))),
+        "implicit_neighbor_generation": (
+            "The neighbor generator's boundary check is removed. What is the most likely result?",
+            _mcq("", [("a", "Neighbors are silently duplicated"),
+                       ("b", "grid[nr][nc] is evaluated for out-of-range coordinates — an IndexError (or wrap-around), so the boundary check must run before indexing"),
+                       ("c", "The traversal loops forever"),
+                       ("d", "Nothing — Python ranges are automatic")], "b",
+                  "Indexing outside the grid happens the moment grid[nr][nc] is read: the boundary test must gate the blockage test, not the other way around.", (3, 3, 4, 3))),
+        "grid_traversal": (
+            "A grid question asks ONLY whether the exit tile is reachable from the entrance — no "
+            "distances. Which traversal applies?",
+            _mcq("", [("a", "BFS only — grids always need BFS"),
+                       ("b", "DFS only — reachability is depth-first territory"),
+                       ("c", "Either BFS or DFS — with no distances required, any traversal over the implicit grid graph answers it"),
+                       ("d", "Neither — grid reachability needs a special algorithm")], "c",
+                  "Reachability never cared about order: BFS and DFS both explore the whole component. Choose BFS when a distance is asked; for pure reachability either works — the same lesson as the V0 comparison.", (3, 3, 4, 4))),
     }
     for skill_id, (prompt, (payload, difficulty)) in VARIATIONS.items():
         teach = [u for u in UNITS if u.skill_id == skill_id and u.unit_type == UnitType.TEACH]
@@ -3185,7 +3707,8 @@ def _apply_amendments():
             "cycle_encounter_reasoning", "parent_aware_traversal", "undirected_cycle_detection",
             "two_color_constraint", "color_propagation", "color_conflict_detection",
             "bipartite_graph",
-            "multi_source_initialization", "nearest_source_distance", "multi_source_bfs"],
+            "multi_source_initialization", "nearest_source_distance", "multi_source_bfs",
+            "grid_graph_model", "implicit_neighbor_generation", "grid_traversal"],
     }
     descriptions = {
         "graph_definition": "Understand a graph as a model of entities and relationships.",
@@ -3246,6 +3769,10 @@ def _apply_amendments():
         "multi_source_initialization": "Seed several equally valid sources at distance 0 into one queue and keep the ordinary BFS loop unchanged.",
         "nearest_source_distance": "Read simultaneous BFS waves as distances to the nearest source, with first discovery fixing the minimum.",
         "multi_source_bfs": "Implement one-pass multi-source BFS in O(V+E), handle sourceless components, single-source reduction, and duplicate sources.",
+        # Layer 6 descriptions
+        "grid_graph_model": "Model a grid as an implicit graph: cells are (row, column) vertices, legal moves are edges, blocked cells are not vertices.",
+        "implicit_neighbor_generation": "Generate a cell's valid neighbors on demand via direction offsets, boundary checks, and blocked-cell checks.",
+        "grid_traversal": "Run BFS/DFS unchanged over implicit grid graphs for reachability, components, unweighted shortest paths, and multi-source BFS in O(R*C).",
     }
     evidence = {
         "degree": {EvidenceType.RECOGNITION, EvidenceType.CONSTRUCTION},
@@ -3296,6 +3823,12 @@ def _apply_amendments():
         "nearest_source_distance": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.EXPLANATION},
         "multi_source_bfs": {EvidenceType.RECOGNITION, EvidenceType.TRACE,
                              EvidenceType.IMPLEMENTATION, EvidenceType.APPLICATION},
+        # Layer 6 evidence requirements
+        "grid_graph_model": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.EXPLANATION},
+        "implicit_neighbor_generation": {EvidenceType.RECOGNITION, EvidenceType.TRACE,
+                                         EvidenceType.IMPLEMENTATION},
+        "grid_traversal": {EvidenceType.RECOGNITION, EvidenceType.TRACE,
+                           EvidenceType.IMPLEMENTATION, EvidenceType.APPLICATION},
     }
     module_order = list(modules.keys())
     skill_order = {sid: i for i, m in enumerate(module_order) for sid in modules[m]}
@@ -3325,6 +3858,7 @@ def _apply_amendments():
         ("undirected_cycle_detection", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
         ("bipartite_graph", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
         ("multi_source_bfs", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
+        ("grid_traversal", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
     }
     problem_keys = {("bfs_implementation", InteractionType.CODE_WRITING),
                     ("dfs_implementation", InteractionType.CODE_WRITING),
@@ -3336,7 +3870,8 @@ def _apply_amendments():
                     ("undirected_cycle_detection", InteractionType.CODE_WRITING),
                     ("bipartite_graph", InteractionType.CODE_WRITING),
                     ("multi_source_bfs", InteractionType.CODE_WRITING),
-                    ("multi_source_initialization", InteractionType.CODE_WRITING)}
+                    ("multi_source_initialization", InteractionType.CODE_WRITING),
+                    ("grid_traversal", InteractionType.CODE_WRITING)}
     capabilities = {
         ("bfs_implementation", InteractionType.CODE_WRITING): {EvidenceType.TRACE, EvidenceType.RECOGNITION},
         ("dfs_implementation", InteractionType.CODE_WRITING): {EvidenceType.TRACE, EvidenceType.RECOGNITION},
@@ -3355,6 +3890,8 @@ def _apply_amendments():
         ("bipartite_graph", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
         ("multi_source_bfs", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
         ("multi_source_initialization", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
+        ("implicit_neighbor_generation", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
+        ("grid_traversal", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
     }
     for e in EXERCISES:
         role = role_by_type[e.interaction_type]

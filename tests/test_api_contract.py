@@ -91,7 +91,7 @@ def test_home_composition_and_resume_availability(api):
     body = r.json()
     assert body["resume"]["available"] is False
     assert body["daily"]["target_units"] >= 1
-    assert body["plan"]["total_skills"] == 53
+    assert body["plan"]["total_skills"] == 56
     start_session(client)
     body = client.get("/api/v1/home").json()
     assert body["resume"]["available"] is True
@@ -408,7 +408,7 @@ def test_progress_contract_qualitative_only(api):
     theory_seen(client, 1)
     body = client.get("/api/v1/learner/progress").json()
     assert body["daily"]["target_units"] >= 1
-    assert len(body["skills"]) == 53
+    assert len(body["skills"]) == 56
     for row in body["skills"]:
         assert row["state"] in {s.value for s in MasteryState}
         assert isinstance(row["evidence"], int)
