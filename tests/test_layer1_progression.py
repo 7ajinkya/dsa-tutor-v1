@@ -432,6 +432,26 @@ OWN_CODE = {
         "                            todo.append((nr, nc))\n"
         "    return regions\n"
     ),
+    "fewest_legs": (
+        "def fewest_legs(graph, start, target):\n"
+        "    if start == target:\n"
+        "        return 0\n"
+        "    reached = {start}\n"
+        "    frontier = [start]\n"
+        "    steps = 0\n"
+        "    while frontier:\n"
+        "        steps += 1\n"
+        "        next_frontier = []\n"
+        "        for u in frontier:\n"
+        "            for w in graph[u]:\n"
+        "                if w not in reached:\n"
+        "                    reached.add(w)\n"
+        "                    if w == target:\n"
+        "                        return steps\n"
+        "                    next_frontier.append(w)\n"
+        "        frontier = next_frontier\n"
+        "    return -1\n"
+    ),
     "grid_multi_source_distances": (
         "from collections import deque\n\n"
         "def grid_multi_source_distances(grid, sources):\n"

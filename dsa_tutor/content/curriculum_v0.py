@@ -3457,6 +3457,177 @@ def _build_practice():
                _h("light_hint", "(1) any traversal; (2) BFS specifically; (3) the outer loop over unvisited floor tiles."),
                _h("targeted_explanation", "The map is an implicit graph: floor tiles are (row, column) vertices; 4-direction steps are edges; walls are not vertices. (1) Traverse from spawn — reachable or not. (2) BFS distance: every move costs one, so first arrival is minimal. (3) Outer loop over unvisited open tiles, counting flood fills — the regions are connected components. All O(R·C).")])
 
+    # --- Layer 7: integration & transfer (NO new algorithm — existing skills only) ---
+    # story -> graph model -> algorithm selection, across all Slice A techniques
+    uid = _unit("recognizing_traversal", "Slice A integration — model the story",
+                "Strip the story away: recognize the underlying graph structure and technique",
+                UnitType.APPLY, dims={T, R})
+    _ex(uid, "recognizing_traversal", InteractionType.FREE_FORM,
+        "Three unlabeled tasks, one graph technique each — name the structure and the "
+        "technique, and justify your choice. (a) A telecom network: count how many separate "
+        "isolated groups of offices the network splits into. (b) The same network: a message "
+        "must hop from office X to office Y through direct links, and the manager wants the "
+        "chain with the FEWEST links. (c) The same network: the auditor suspects a redundant "
+        "loop somewhere and wants it found. Every link is two-way and unweighted.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["component", "outer loop", "repeated", "groups", "count", "unvisited"],
+             "text": "(a) Connected components: repeated BFS/DFS from unvisited offices, one traversal per group."},
+            {"id": "p2", "keywords": ["bfs", "shortest", "fewest", "level", "distance", "unweighted"],
+             "text": "(b) Unweighted shortest path: BFS from X — first arrival at Y uses fewest links."},
+            {"id": "p3", "keywords": ["cycle", "parent", "visited non-parent", "came from", "dfs", "loop"],
+             "text": "(c) Undirected cycle detection: traversal with a parent check; a visited non-parent is the loop."},
+            {"id": "p4", "keywords": ["undirected", "two-way", "both"],
+             "text": "Recognizes the graph is undirected — links work both ways."},
+         ], "min_points": 3},
+        d((4, 2, 4, 4)), requires_ai=True, ordering=1,
+        hints=[_h("socratic_question", "For each task, what is the OUTPUT — a count, a number, or a yes/no structure check?"),
+               _h("micro_question", "Which task needs DISTANCES, which needs a COUNT of traversals, and which needs a structural finding during one traversal?"),
+               _h("light_hint", "(a) component enumeration, (b) BFS shortest path, (c) parent-aware cycle detection."),
+               _h("targeted_explanation", "(a) The groups are connected components: outer loop over unvisited offices, counting traversals — O(V+E). (b) Fewest links in an unweighted graph is a BFS distance question. (c) A redundant loop is a cycle: run a parent-aware traversal and report any visited NON-parent neighbor; wrap in the outer loop because the network may be split.")])
+    _ex(uid, "recognizing_traversal", InteractionType.FREE_FORM,
+        "Two more unlabeled tasks. (a) A project lead wants the office split into exactly two "
+        "subteams given a list of coworker pairs who must be separated — and wants to be told "
+        "when the split is impossible. (b) A city app must label every block with its distance "
+        "to the NEAREST of several hospitals. Describe the graph model, the technique, and the "
+        "state you maintain for each.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["two color", "two-color", "bipartite", "color", "opposite", "two group"],
+             "text": "(a) Two-group constraint = bipartite 2-coloring."},
+            {"id": "p2", "keywords": ["same", "equal", "conflict", "impossible", "violation"],
+             "text": "(a) The impossible signal: an edge whose endpoints are forced into the SAME group."},
+            {"id": "p3", "keywords": ["multi-source", "multi source", "all hospitals", "distance 0", "several sources", "nearest"],
+             "text": "(b) Multi-source BFS: every hospital seeded at distance 0 in one shared queue."},
+            {"id": "p4", "keywords": ["first", "nearest", "wave", "minimum", "queue"],
+             "text": "(b) First wave to arrive fixes the nearest-hospital distance; -1 for unreachable blocks."},
+         ], "min_points": 3},
+        d((4, 2, 4, 4)), requires_ai=True, ordering=2,
+        hints=[_h("socratic_question", "(a) What does 'must be separated' become in graph language? (b) How many starting points does (b) have?"),
+               _h("micro_question", "In (a), what observation during traversal proves no split exists? In (b), what does the shared queue guarantee?"),
+               _h("light_hint", "(a) color spreading along edges, conflict on equal colors. (b) seed all sources at 0, first arrival wins."),
+               _h("targeted_explanation", "(a) Coworkers are vertices, separation pairs are edges: the 2-coloring traversal assigns opposite groups along every edge; an equally-colored edge is the impossibility proof. (b) Blocks are vertices, streets unweighted edges: one BFS seeded with ALL hospitals at distance 0 gives every block its nearest-hospital distance in a single O(V+E) pass; unreachable blocks keep -1.")])
+    _ex(uid, "recognizing_traversal", InteractionType.FREE_FORM,
+        "A map-making tool works on rectangular grids of floor and wall tiles and must answer: "
+        "(1) how many separate floor regions does a map contain, (2) what is the fewest-moves "
+        "route between two floor tiles, and (3) for every floor tile, its distance to the "
+        "nearest of several marked tiles? Nobody says the word 'graph' — explain the modeling "
+        "step and the technique for each answer.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["implicit", "cells", "tiles", "vertices", "cells are vertices", "grid is a graph", "model"],
+             "text": "Model the grid as an implicit graph: open cells are (row, column) vertices, legal moves are edges."},
+            {"id": "p2", "keywords": ["component", "outer loop", "flood", "count", "regions"],
+             "text": "(1) Grid components: the outer loop over unvisited open cells, counting traversals."},
+            {"id": "p3", "keywords": ["bfs", "distance", "fewest", "shortest", "level"],
+             "text": "(2) Unweighted shortest path: BFS — every move costs one."},
+            {"id": "p4", "keywords": ["multi-source", "all", "distance 0", "nearest", "seed"],
+             "text": "(3) Multi-source BFS on the grid: all marked cells seeded at distance 0."},
+         ], "min_points": 3},
+        d((4, 2, 4, 4)), requires_ai=True, ordering=3,
+        hints=[_h("socratic_question", "Before choosing any algorithm, what has to happen so that BFS/DFS even apply to a map of tiles?"),
+               _h("micro_question", "Which of the three questions is a components question, a distance question, a nearest-source question?"),
+               _h("light_hint", "Model first (implicit grid graph), then: components, BFS, multi-source BFS."),
+               _h("targeted_explanation", "Modeling step: cells are vertices named (row, column), 4-direction steps are edges, walls are not vertices — an implicit graph, neighbors generated on demand. (1) Components: outer loop over unvisited floor tiles counting flood fills. (2) BFS distance for fewest moves. (3) Multi-source BFS seeded with the marked tiles at distance 0. All O(R·C).")])
+
+    # which approach & what state — the 'what changes?' diagnostic
+    uid = _unit("bfs_vs_dfs", "Slice A integration — which approach and what state",
+                "Choose the technique and the state it must maintain, with justification",
+                UnitType.APPLY, dims={R, T})
+    _ex(uid, "bfs_vs_dfs", InteractionType.FREE_FORM,
+        "You have an ordinary plain BFS that records only a visited set. For each upgraded "
+        "requirement below, state the ONE piece of state you add or change and why: "
+        "(1) 'also tell me the minimum number of steps to every vertex'; (2) 'also show me the "
+        "actual route taken'; (3) 'there are now several equally valid starting points'.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["distance", "level", "dist", "steps", "counter", "+1"],
+             "text": "(1) Add a distance value per vertex (the BFS level): distance[neighbor] = distance[current] + 1."},
+            {"id": "p2", "keywords": ["parent", "predecessor", "who discovered", "remember", "route", "path"],
+             "text": "(2) Add a parent/predecessor record at first discovery, then walk back from the target and reverse."},
+            {"id": "p3", "keywords": ["all sources", "every source", "distance 0", "seed", "queue"],
+             "text": "(3) Seed every source at distance 0 into the same queue before the loop — nothing else changes."},
+            {"id": "p4", "keywords": ["same traversal", "one bfs", "traversal unchanged", "same algorithm", "skeleton"],
+             "text": "The traversal skeleton stays the same — only the retained state changes with the question."},
+         ], "min_points": 3},
+        d((4, 2, 4, 4)), requires_ai=True, ordering=1,
+        hints=[_h("socratic_question", "In each case, does the exploration ORDER change — or only what you remember while exploring?"),
+               _h("micro_question", "What does BFS know the moment it first discovers a vertex, and which extra array preserves exactly that?"),
+               _h("light_hint", "(1) distance, (2) parent, (3) all sources at distance 0."),
+               _h("targeted_explanation", "The algorithm is only half the solution; the other half is the state. (1) record distance[v] = distance[current] + 1 at discovery (BFS levels ARE distances). (2) record parent[neighbor] = current at first discovery and walk back from the target. (3) initialize every source at distance 0 in one queue — the nearest-source distances then fall out of the same loop. One traversal, three different states.")])
+    _ex(uid, "bfs_vs_dfs", InteractionType.FREE_FORM,
+        "For each pair, choose the traversal or technique and justify the choice in one or two "
+        "sentences: (a) 'is the museum reachable from the hotel?' vs 'what is the fewest-street "
+        "route to the museum?'; (b) 'how many friend groups does this network have?' vs 'can "
+        "the network's members be split into two rival-free teams?'; (c) 'which floor tiles "
+        "connect to the entrance?' on a game map.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["either", "dfs", "both", "reachability"],
+             "text": "(a) Reachability: any traversal (DFS natural); fewest streets: BFS, because levels are distances."},
+            {"id": "p2", "keywords": ["component", "outer loop", "count", "repeated"],
+             "text": "(b) Friend groups: connected components via the outer loop."},
+            {"id": "p3", "keywords": ["bipartite", "two color", "color", "two team", "conflict"],
+             "text": "(b) Two rival-free teams: bipartite 2-coloring, conflict = impossible."},
+            {"id": "p4", "keywords": ["grid", "implicit", "flood", "cells", "tiles"],
+             "text": "(c) Implicit grid graph: flood fill from the entrance tile (either traversal)."},
+         ], "min_points": 3},
+        d((4, 2, 4, 4)), requires_ai=True, ordering=2,
+        hints=[_h("socratic_question", "Which questions only ask YES/NO about reachability, and which ask for a NUMBER or a SPLIT?"),
+               _h("micro_question", "What does the answer's TYPE tell you about the state you must maintain?"),
+               _h("light_hint", "(a) either vs BFS; (b) components vs 2-coloring; (c) implicit grid graph, either traversal."),
+               _h("targeted_explanation", "(a) Reachability ignores order — DFS or BFS; fewest streets needs BFS's level = distance guarantee. (b) Counting groups is component enumeration; the two-team split is 2-coloring with the color array doubling as visited. (c) Model tiles as an implicit grid graph and flood fill from the entrance — either traversal answers connectivity.")])
+
+    # unfamiliar-context implementation + complexity transfer
+    uid = _unit("traversal_application", "Slice A integration — unfamiliar context",
+                "Implement from an unlabeled story and explain correctness and cost",
+                UnitType.APPLY, dims={E, T})
+    _ex(uid, "traversal_application", InteractionType.CODE_WRITING,
+        "A flight search app: cities are connected by direct flights (each flight is one 'leg', "
+        "all legs cost the same). Write `fewest_legs(graph, start, target)` returning the "
+        "minimum number of legs to fly from `start` to `target`, or -1 when no chain of flights "
+        "connects them (return 0 when start == target). graph is an adjacency list of integer "
+        "cities. No algorithm name is given — pick the technique yourself.",
+        {"function_name": "fewest_legs",
+         "starter": "from collections import deque\n\ndef fewest_legs(graph, start, target):\n    # your code here\n",
+         "tests": [{"args": ["graph", "start", "target"],
+                    "graph": [[1, 2], [3], [3, 4], [5], [5], []],
+                    "start": 0, "target": 5, "expected": 3},
+                   {"args": ["graph", "start", "target"],
+                    "graph": [[1, 2], [3], [3, 4], [5], [5], []],
+                    "start": 0, "target": 0, "expected": 0},
+                   {"args": ["graph", "start", "target"],
+                    "graph": [[1], [0], [], []],
+                    "start": 0, "target": 3, "expected": -1},
+                   {"args": ["graph", "start", "target"],
+                    "graph": [[1], [0, 2], [1], []],
+                    "start": 2, "target": 0, "expected": 2}],
+         "solution": ("from collections import deque\n"
+                      "\n"
+                      "def fewest_legs(graph, start, target):\n"
+                      "    distance = {start: 0}\n"
+                      "    queue = deque([start])\n"
+                      "    while queue:\n"
+                      "        v = queue.popleft()\n"
+                      "        if v == target:\n"
+                      "            return distance[v]\n"
+                      "        for w in graph[v]:\n"
+                      "            if w not in distance:\n"
+                      "                distance[w] = distance[v] + 1\n"
+                      "                queue.append(w)\n"
+                      "    return -1\n")},
+        d((4, 4, 4, 4)), language="python", ordering=1,
+        hints=[_h("socratic_question", "Every flight costs the same — what does that tell you about which traversal answers 'fewest legs'?"),
+               _h("micro_question", "What state must the traversal keep so the answer is a NUMBER rather than a yes/no?"),
+               _h("light_hint", "BFS with a distance map seeded at 0 for the start; first arrival at the target is minimal; queue exhausted means -1."),
+               _h("targeted_explanation", "Model cities as vertices, flights as unweighted edges. BFS records distance[neighbor] = distance[current] + 1 at first discovery; when the target is dequeued its distance is the fewest-legs count. If the queue empties first, no chain exists: -1. One BFS, O(V+E).")])
+    _ex(uid, "traversal_application", InteractionType.COMPLEXITY_QUESTION,
+        "You count the connected components of a V-vertex, E-edge adjacency-list graph with the "
+        "outer loop (repeated traversal from each unvisited vertex). What is the TOTAL worst-case "
+        "time, in big-O? Answer like 'O(V*E)'.",
+        {"acceptable": ["o(v+e)", "o(e+v)", "o(n+m)", "o(v + e)"], "kind": "sum"},
+        d((4, 1, 4, 4)), ordering=2,
+        hints=[_h("socratic_question", "Across ALL the traversals together, how many times can one vertex be visited?"),
+               _h("micro_question", "Why does the visited set make the sum of many traversals linear rather than quadratic?"),
+               _h("light_hint", "Each vertex enters a queue at most once TOTAL; each edge is scanned at most twice total."),
+               _h("targeted_explanation", "Although up to V traversals may start, each vertex is discovered at most once across all of them and each edge examined at most twice — the total is O(V+E), not O(V·(V+E)).")])
+
+
 
 
 def _build_variations():
@@ -3795,8 +3966,10 @@ def _apply_amendments():
         "dfs_time_complexity": {EvidenceType.RECOGNITION, EvidenceType.EXPLANATION},
         "dfs_space_complexity": {EvidenceType.RECOGNITION, EvidenceType.EXPLANATION},
         "explicit_stack_dfs": {EvidenceType.RECOGNITION, EvidenceType.TRACE},
-        "bfs_vs_dfs": {EvidenceType.RECOGNITION, EvidenceType.EXPLANATION},
-        "recognizing_traversal": {EvidenceType.RECOGNITION, EvidenceType.EXPLANATION},
+        "bfs_vs_dfs": {EvidenceType.RECOGNITION, EvidenceType.EXPLANATION,
+                       EvidenceType.APPLICATION},
+        "recognizing_traversal": {EvidenceType.RECOGNITION, EvidenceType.EXPLANATION,
+                                  EvidenceType.APPLICATION},
         "traversal_application": {EvidenceType.RECOGNITION, EvidenceType.APPLICATION},
         "v0_readiness": {EvidenceType.RECOGNITION, EvidenceType.APPLICATION,
                          EvidenceType.EXPLANATION},
@@ -3902,6 +4075,36 @@ def _apply_amendments():
         e.scope = ActivityScope.PROBLEM if (e.skill_id, e.interaction_type) in problem_keys \
             else ActivityScope.MICRO
         e.required_capabilities = frozenset(capabilities.get((e.skill_id, e.interaction_type), set()))
+    # Layer 7 (Graph Slice A): the integration/transfer units intentionally remove
+    # algorithm labels; their activities demonstrate APPLICATION (transfer), which
+    # the host skills now require as evidence — per exercise, not per (skill, type),
+    # so the skills' ordinary explanation activities keep their EXPLANATION role
+    integration_unit_ids = {u.id for u in UNITS
+                            if u.unit_type is UnitType.APPLY
+                            and "integration" in (u.title or "").lower()}
+    for e in EXERCISES:
+        if e.unit_id in integration_unit_ids:
+            e.role = ActivityRole.APPLICATION
+    # order each integration unit directly after its skill's teach unit: the engine
+    # serves a skill only until mastery, so a transfer unit placed after the ordinary
+    # practice units would never be reached; placed here it is fully walked and the
+    # skill's remaining practice units still provide EXPLANATION evidence
+    for u in UNITS:
+        if u.id in integration_unit_ids:
+            teach = next((t for t in UNITS
+                          if t.skill_id == u.skill_id and t.unit_type is UnitType.TEACH), None)
+            if teach is not None:
+                u.ordering = teach.ordering + 1
+    # and order the host skills' EXERCISES so the integration activities come first:
+    # the engine's variation selector compares raw exercise orderings across the
+    # skill's whole pool, so a later-created practice exercise with a smaller
+    # ordering would otherwise always preempt the integration tasks
+    for sid in ("recognizing_traversal", "bfs_vs_dfs", "traversal_application"):
+        skill_exs = sorted([e for e in EXERCISES if e.skill_id == sid],
+                           key=lambda e: (0 if e.unit_id in integration_unit_ids else 1,
+                                          e.ordering, e.id))
+        for i, e in enumerate(skill_exs, 1):
+            e.ordering = i
 
 
 _build()
