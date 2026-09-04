@@ -43,6 +43,10 @@ EXAMPLES = {
     "v0_readiness": "The exit interview: write plain BFS and DFS without hints, trace both on paper, explain why visited prevents infinite loops, and state O(V+E)/O(V) — unprompted.",
     "adjacency": "A friendship app suggesting 'people you may know' starts from adjacency: it looks at the direct neighbors of your vertex first.",
     "conversion_between_representations": "An input file gives you edge pairs; your algorithm needs neighbor iteration — converting edge list → adjacency list is the everyday bridge between representations.",
+    # Layer 1 examples
+    "traversal_boundary": "Graph: A-B-C and D-E-F (two triangles, no connection between them). BFS from A visits A,B,C and the queue empties. The visited set {A,B,C} is exactly one component. D,E,F are untouched — they are in a different component, not a failure of BFS.",
+    "component_discovery": "After BFS from A gives visited={A,B,C}, you scan for unvisited vertices and find D. This is the signal: start a new BFS from D. It will visit exactly D's component. The unvisited vertex is not an error — it is the starting point for the next component.",
+    "component_enumeration": "Graph with 3 components: {0,1,2}, {3,4}, {5}. Outer loop: start=0 runs BFS→visited={0,1,2}, count=1. start=1,2 skipped. start=3 runs BFS→visited={0,1,2,3,4}, count=2. start=4 skipped. start=5 runs BFS→visited={0,1,2,3,4,5}, count=3. Total work O(V+E) — each vertex/edge processed once.",
 }
 
 PITFALLS = {
@@ -84,4 +88,8 @@ PITFALLS = {
     "v0_readiness": "Memorized code without the 'why' fails the readiness check — you must produce, trace, and explain independently, not recite.",
     "adjacency": "'Connected to' by a PATH is not adjacency — A→B→C makes A and C reachable, but only A-B makes them adjacent.",
     "conversion_between_representations": "Converting is not free at scale: list→matrix trades O(V+E) memory for O(V²) — convert only when the target representation earns its cost.",
+    # Layer 1 pitfalls
+    "traversal_boundary": "The traversal stopping does not mean it failed — it means the component is done. Unvisited vertices are in other components, not a bug.",
+    "component_discovery": "An unvisited vertex after traversal does not mean 'BFS missed it'. It means 'this vertex is in another component — start a new traversal here'.",
+    "component_enumeration": "The outer loop runs for every vertex, but the inner BFS runs only for unvisited ones. Thinking it runs V times BFS = O(V(V+E)) is the classic mistake. The visited set guarantees each vertex is processed once total.",
 }

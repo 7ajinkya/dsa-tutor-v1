@@ -76,6 +76,17 @@ SKILLS = [
     # --- review RC-07 additions ---
     _skill("adjacency", "Adjacency", 45, "Module A - Graph Mental Model", (1, 1, 1, 1), {K}),
     _skill("conversion_between_representations", "Converting between representations", 46, "Module B - Graph Representation", (3, 3, 3, 2), {K, E}),
+
+    # --- Layer 1: Reachability → Connected Components (Graph Slice A) ---
+    # traversal_boundary: understand one traversal = exactly one connected component
+    _skill("traversal_boundary", "Traversal boundary", 47, "Module F - Integration & Application",
+           (3, 2, 3, 3), {K, R}),
+    # component_discovery: an unvisited vertex after traversal can indicate another component
+    _skill("component_discovery", "Component discovery", 48, "Module F - Integration & Application",
+           (3, 3, 3, 3), {K, E, R}),
+    # component_enumeration: repeat traversal from unvisited vertices to enumerate all components
+    _skill("component_enumeration", "Component enumeration", 49, "Module F - Integration & Application",
+           (3, 4, 4, 4), {E, R, T}),
 ]
 
 PREREQS = [
@@ -146,6 +157,16 @@ PREREQS = [
     SkillPrerequisite("v0_readiness", "bfs_vs_dfs", PS.CORE),
     SkillPrerequisite("v0_readiness", "bfs_space_complexity", PS.SUPPORTING),
     SkillPrerequisite("v0_readiness", "dfs_space_complexity", PS.SUPPORTING),
+
+    # --- Layer 1: Reachability → Connected Components ---
+    SkillPrerequisite("traversal_boundary", "visited_state", PS.CORE),
+    SkillPrerequisite("traversal_boundary", "bfs_manual_tracing", PS.CORE),
+    SkillPrerequisite("traversal_boundary", "dfs_manual_tracing", PS.CORE),
+    SkillPrerequisite("component_discovery", "traversal_boundary", PS.CORE),
+    SkillPrerequisite("component_discovery", "connectedness", PS.SUPPORTING),
+    SkillPrerequisite("component_enumeration", "component_discovery", PS.CORE),
+    SkillPrerequisite("component_enumeration", "bfs_implementation", PS.CORE),
+    SkillPrerequisite("component_enumeration", "dfs_implementation", PS.CORE),
 ]
 
 # ------------------------------------------------------------- theory ----
@@ -349,6 +370,36 @@ THEORY = {
         "hand, explain the visited state and why it prevents infinite loops, state O(V+E)/O(V) "
         "complexity, and recognize when traversal applies. Passing this means the Graph V0 outcome "
         "list is demonstrated — advanced graph algorithms are a later version."
+    ),
+
+    # --- Layer 1 theory ---
+    "traversal_boundary": (
+        "A single BFS or DFS started at one vertex explores exactly one connected component — the "
+        "set of all vertices reachable from that start. The traversal stops when its frontier "
+        "becomes empty, meaning there are no more undiscovered vertices adjacent to anything already "
+        "visited. Crucially, this does NOT mean the traversal failed; it means it has finished its "
+        "job: it found everything in that one component. The visited set now contains precisely that "
+        "component. If the graph has other components, their vertices remain unvisited — and that is "
+        "expected, not an error."
+    ),
+    "component_discovery": (
+        "After a traversal finishes, any vertex not in the visited set belongs to a different "
+        "connected component. Starting a new traversal from any such unvisited vertex will discover "
+        "its entire component. This is the key insight: to explore the whole graph, you do not run "
+        "one traversal from every vertex (which would be O(V(V+E))). Instead, you run one traversal "
+        "per component by starting from an unvisited vertex, marking everything it reaches, and "
+        "repeating until no unvisited vertices remain. Each new start discovers exactly one new "
+        "component."
+    ),
+    "component_enumeration": (
+        "The outer loop pattern — 'for each vertex, if not visited, start a traversal' — systematically "
+        "enumerates all connected components. Each iteration of the loop that actually launches a "
+        "traversal corresponds to one component. You can count components by incrementing a counter "
+        "each time you start a new traversal. You can label components by assigning a component ID "
+        "to every vertex visited during that traversal. Because every vertex and edge is processed "
+        "at most a constant number of times across all traversals, the total time is O(V+E), not "
+        "O(V(V+E)). The visited set guarantees no vertex is processed twice, even though multiple "
+        "traversals run in sequence."
     ),
 }
 
@@ -613,6 +664,26 @@ _mcq_bank("v0_readiness", "You are ready to finish Graph V0 when you can...",
            ("c", "Solve Dijkstra and topological sort"),
            ("d", "Name all graph algorithms")], "b",
           "Independent correctness + reasoning about state and complexity = the V0 outcome.", (4, 4, 4, 4))
+
+# Layer 1 MCQ banks
+_mcq_bank("traversal_boundary", "A single BFS from vertex A in a disconnected graph visits exactly...",
+          [("a", "The whole graph"),
+           ("b", "The connected component containing A"),
+           ("c", "Only the neighbors of A"),
+           ("d", "A single path from A")], "b",
+          "One traversal = one component. BFS from A visits exactly the vertices reachable from A.", (3, 2, 3, 3))
+_mcq_bank("component_discovery", "After BFS from A finishes, vertex D is unvisited. What should you do?",
+          [("a", "Report an error — BFS should visit everything"),
+           ("b", "Start a new BFS from D to discover its component"),
+           ("c", "Restart BFS from A with a larger queue"),
+           ("d", "Add an edge from A to D manually")], "b",
+          "Unvisited after traversal = different component. Start a new traversal from the unvisited vertex.", (3, 3, 3, 3))
+_mcq_bank("component_enumeration", "The outer loop `for v in range(n): if not visited[v]: bfs(v)` counts components. Why is total time O(V+E)?",
+          [("a", "The loop only runs V times"),
+           ("b", "The visited set prevents any vertex from being processed twice across all BFS runs"),
+           ("c", "BFS is O(1) per vertex"),
+           ("d", "It is actually O(V(V+E))")], "b",
+          "Each vertex enters the queue at most once total; each edge is examined at most twice total.", (3, 4, 4, 4))
 
 _mcq_bank("adjacency", "Two vertices are adjacent when...",
           [("a", "An edge connects them directly"),
@@ -1039,6 +1110,197 @@ def _build_practice():
                _h("light_hint", "Two sources can enqueue the same vertex before either is dequeued."),
                _h("targeted_explanation", "Marking at dequeue lets a vertex be enqueued twice; mark it at enqueue time so it enters the queue at most once.")])
 
+    # --- Layer 1: traversal_boundary ---
+    uid = _unit("traversal_boundary", "Traversal boundary — practice",
+                "Understand that one traversal explores exactly one component",
+                UnitType.PRACTICE, dims={K, R})
+    _ex(uid, "traversal_boundary", InteractionType.MCQ,
+        "Graph: A-B-C and D-E (two separate components). BFS from A visits A, B, C and stops. "
+        "Why does it stop?",
+        *_mcq("", [("a", "BFS is broken"),
+                   ("b", "All vertices reachable from A have been visited — it has finished A's component"),
+                   ("c", "BFS only works on connected graphs"),
+                   ("d", "It ran out of memory")], "b",
+              "The visited set contains A's component {A,B,C}. The queue is empty because no more neighbors exist. D and E are in a different component — unreachable from A.", (3, 2, 3, 3)), ordering=1,
+        hints=[_h("socratic_question", "After C is processed, which vertices are in the queue?"),
+               _h("micro_question", "Are D and E adjacent to any vertex in {A, B, C}?"),
+               _h("light_hint", "The queue empties when there are no more unvisited neighbors of visited vertices."),
+               _h("targeted_explanation", "BFS from A visits exactly {A,B,C} because they are all reachable from A. The queue empties when the component is exhausted. D and E form a separate component.")])
+    _ex(uid, "traversal_boundary", InteractionType.FREE_FORM,
+        "Graph: 1-2-3 and 4-5 and 6 (three components). DFS from 1 finishes. What vertices are visited, and why does DFS stop? "
+        "What does the visited set represent?",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["1", "2", "3", "one", "two", "three"],
+             "text": "Identifies visited set = {1,2,3} — the component containing 1."},
+            {"id": "p2", "keywords": ["stop", "empty", "no more", "frontier", "queue", "stack", "neighbors"],
+             "text": "Explains traversal stops when frontier is empty — no more unvisited neighbors."},
+            {"id": "p3", "keywords": ["component", "reachable", "different", "separate", "unvisited"],
+             "text": "Says unvisited vertices (4,5,6) are in different components."},
+        ], "min_points": 2},
+        d((3, 2, 3, 3)), requires_ai=True, ordering=2,
+        hints=[_h("socratic_question", "After visiting 3, what neighbors does it have that are unvisited?"),
+               _h("micro_question", "Can the traversal jump from 3 to 4 without an edge?"),
+               _h("light_hint", "The visited set is exactly the component of the start vertex."),
+               _h("targeted_explanation", "DFS from 1 visits 1,2,3. It stops because 3's neighbors (2) are already visited — the component is done. Vertices 4,5,6 are in other components.")])
+
+    # --- Layer 1: component_discovery ---
+    uid = _unit("component_discovery", "Component discovery — practice",
+                "Recognize that an unvisited vertex after traversal signals a new component",
+                UnitType.PRACTICE, dims={K, E, R})
+    _ex(uid, "component_discovery", InteractionType.CODE_TRACING,
+        "This code runs BFS from vertex 0, then checks for unvisited vertices.\n"
+        "What does it print?\n\n"
+        "graph = [[1], [0, 2], [1], [4], [3]]  # 0-1-2 and 3-4 are separate components\n"
+        "n = 5\n"
+        "visited = set()\n"
+        "from collections import deque\n"
+        "queue = deque([0])\n"
+        "visited.add(0)\n"
+        "while queue:\n"
+        "    v = queue.popleft()\n"
+        "    for nxt in graph[v]:\n"
+        "        if nxt not in visited:\n"
+        "            visited.add(nxt)\n"
+        "            queue.append(nxt)\n"
+        'print("visited:", sorted(visited))\n'
+        "unvisited = [v for v in range(n) if v not in visited]\n"
+        'print("unvisited:", unvisited)',
+        {"code": "", "expected_output": "visited: [0, 1, 2]\nunvisited: [3, 4]"},
+        d((3, 3, 3, 3)), ordering=1,
+        hints=[_h("socratic_question", "Which vertices are reachable from 0 following the edges?"),
+               _h("micro_question", "After the BFS loop ends, which vertices were never added to visited?"),
+               _h("light_hint", "Edges are 0-1, 1-2 and 3-4. From 0 you can only reach 0,1,2."),
+               _h("targeted_explanation", "BFS from 0 visits {0,1,2}. Vertices 3 and 4 are in a different component, so they remain unvisited — this is the signal to start a new traversal.")])
+    _ex(uid, "component_discovery", InteractionType.FREE_FORM,
+        "You run BFS from vertex A in a graph and the visited set is {A, B, C}. Vertex D is not in visited. "
+        "Does this mean BFS failed? What does it tell you about D, and what should you do next?",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["no", "not fail", "correct", "finished", "done"],
+             "text": "Says BFS did not fail — it finished its component."},
+            {"id": "p2", "keywords": ["different", "other", "another", "separate", "component"],
+             "text": "Identifies D is in a different component."},
+            {"id": "p3", "keywords": ["start", "run", "traversal", "again", "unvisited", "D"],
+             "text": "Says to start a new traversal from D."},
+        ], "min_points": 2},
+        d((3, 3, 3, 3)), requires_ai=True, ordering=2,
+        hints=[_h("socratic_question", "If BFS visited A, B, C and stopped, did it process all neighbors of those vertices?"),
+               _h("micro_question", "Is there an edge between {A,B,C} and D?"),
+               _h("light_hint", "No edge between the visited set and D means D is in another component."),
+               _h("targeted_explanation", "BFS finished correctly — it visited exactly the component containing A. D is unvisited because no path exists from A to D. Start a new BFS from D to discover its component.")])
+
+    # --- Layer 1: component_enumeration ---
+    uid = _unit("component_enumeration", "Component enumeration — practice",
+                "Implement the outer loop to count and label all components",
+                UnitType.PRACTICE, dims={E, R})
+    _ex(uid, "component_enumeration", InteractionType.CODE_TRACING,
+        "This code counts connected components using the outer loop pattern. What does it print?\n\n"
+        "graph = [[1], [0, 2], [1], [4], [3], []]  # components: {0,1,2}, {3,4}, {5}\n"
+        "n = 6\n"
+        "visited = set()\n"
+        "components = 0\n"
+        "from collections import deque\n"
+        "for start in range(n):\n"
+        "    if start not in visited:\n"
+        "        components += 1\n"
+        "        queue = deque([start])\n"
+        "        visited.add(start)\n"
+        "        while queue:\n"
+        "            v = queue.popleft()\n"
+        "            for nxt in graph[v]:\n"
+        "                if nxt not in visited:\n"
+        "                    visited.add(nxt)\n"
+        "                    queue.append(nxt)\n"
+        'print("components:", components)',
+        {"code": "", "expected_output": "components: 3"},
+        d((3, 4, 4, 4)), ordering=1,
+        hints=[_h("socratic_question", "How many times does the `if start not in visited:` block execute?"),
+               _h("micro_question", "When start=0, what happens? When start=3, what happens?"),
+               _h("light_hint", "The outer loop runs for every vertex, but the inner BFS only runs for unvisited vertices."),
+               _h("targeted_explanation", "start=0: BFS visits {0,1,2}, components=1. start=1,2: skipped (visited). start=3: BFS visits {3,4}, components=2. start=4: skipped. start=5: BFS visits {5}, components=3. Result: 3.")])
+    _ex(uid, "component_enumeration", InteractionType.CODE_WRITING,
+        "Write `count_components(graph)` that returns the number of connected components in an undirected graph. "
+        "graph is an adjacency list: graph[v] is a list of neighbors of vertex v.",
+        {"function_name": "count_components",
+         "starter": "from collections import deque\n\ndef count_components(graph):\n    # your code here\n",
+         "tests": [{"graph": [[1], [0, 2], [1], [4], [3], []], "expected": 3},
+                   {"graph": [[1, 2], [0, 2], [0, 1]], "expected": 1},  # triangle
+                   {"graph": [[], [], []], "expected": 3},  # three isolated vertices
+                   {"graph": [[1], [0], [3], [2]], "expected": 2}],  # two pairs
+         "solution": ("from collections import deque\n\n"
+                      "def count_components(graph):\n"
+                      "    n = len(graph)\n"
+                      "    visited = set()\n"
+                      "    components = 0\n"
+                      "    for start in range(n):\n"
+                      "        if start not in visited:\n"
+                      "            components += 1\n"
+                      "            queue = deque([start])\n"
+                      "            visited.add(start)\n"
+                      "            while queue:\n"
+                      "                v = queue.popleft()\n"
+                      "                for nxt in graph[v]:\n"
+                      "                    if nxt not in visited:\n"
+                      "                        visited.add(nxt)\n"
+                      "                        queue.append(nxt)\n"
+                      "    return components\n")},
+        d((3, 4, 4, 4)), language="python", ordering=2,
+        hints=[_h("socratic_question", "What does the visited set contain after the inner while loop finishes?"),
+               _h("micro_question", "How many times should you increment the counter — once per vertex or once per BFS run?"),
+               _h("light_hint", "Increment when you find an unvisited vertex and start a new BFS from it."),
+               _h("targeted_explanation", "Outer loop over all vertices. If unvisited, start BFS, increment count. The BFS marks the whole component visited. Total O(V+E) because every vertex/edge processed once.")])
+    _ex(uid, "component_enumeration", InteractionType.CODE_WRITING,
+        "Write `label_components(graph)` that returns a list `comp` where `comp[v]` is the component ID "
+        "(0, 1, 2, ...) of vertex v. Vertices in the same component get the same ID; different components get different IDs.",
+        {"function_name": "label_components",
+         "starter": "from collections import deque\n\ndef label_components(graph):\n    # your code here\n",
+         "tests": [{"graph": [[1], [0, 2], [1], [4], [3], []], "expected": [0, 0, 0, 1, 1, 2]},
+                   {"graph": [[1, 2], [0, 2], [0, 1]], "expected": [0, 0, 0]},
+                   {"graph": [[], [], []], "expected": [0, 1, 2]},
+                   {"graph": [[1], [0], [3], [2]], "expected": [0, 0, 1, 1]}],
+         "solution": ("from collections import deque\n\n"
+                      "def label_components(graph):\n"
+                      "    n = len(graph)\n"
+                      "    comp = [-1] * n\n"
+                      "    cid = 0\n"
+                      "    for start in range(n):\n"
+                      "        if comp[start] == -1:\n"
+                      "            queue = deque([start])\n"
+                      "            comp[start] = cid\n"
+                      "            while queue:\n"
+                      "                v = queue.popleft()\n"
+                      "                for nxt in graph[v]:\n"
+                      "                    if comp[nxt] == -1:\n"
+                      "                        comp[nxt] = cid\n"
+                      "                        queue.append(nxt)\n"
+                      "            cid += 1\n"
+                      "    return comp\n")},
+        d((3, 4, 4, 4)), language="python", ordering=3,
+        hints=[_h("socratic_question", "Instead of a visited set, what can you use to track both 'visited' and 'which component'?"),
+               _h("micro_question", "When you start a new BFS, what component ID should you assign to all vertices it visits?"),
+               _h("light_hint", "Use a list initialized to -1. When you start a BFS, assign the current component ID to every vertex you visit."),
+               _h("targeted_explanation", "comp[v] = -1 means unvisited. When starting BFS from start, set comp[start] = cid, and every vertex reached gets comp[v] = cid. After the BFS finishes, increment cid for the next component.")])
+
+    # --- Layer 1: component_enumeration apply (transfer) ---
+    uid = _unit("component_enumeration", "Component enumeration — apply",
+                "Apply component counting to a simple real-world scenario",
+                UnitType.APPLY, dims={T, R})
+    _ex(uid, "component_enumeration", InteractionType.FREE_FORM,
+        "A social network has 6 people. Friendships: Alice-Bob, Bob-Carol, Dave-Eve. Frank has no friends. "
+        "How many disconnected friend groups exist? Explain how you know without drawing the graph.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["3", "three", "groups", "components"],
+             "text": "Identifies 3 groups/components."},
+            {"id": "p2", "keywords": ["alice", "bob", "carol", "dave", "eve", "frank"],
+             "text": "Names the three groups: {Alice,Bob,Carol}, {Dave,Eve}, {Frank}."},
+            {"id": "p3", "keywords": ["traversal", "bfs", "dfs", "visited", "unvisited", "outer", "loop", "count"],
+             "text": "Mentions running traversal from each unvisited person / outer loop counting."},
+        ], "min_points": 2},
+        d((3, 4, 4, 4)), requires_ai=True, ordering=4,
+        hints=[_h("socratic_question", "Which people are connected to Alice through friendships?"),
+               _h("micro_question", "After exploring Alice's group, who is left unvisited?"),
+               _h("light_hint", "Three groups: Alice-Bob-Carol, Dave-Eve, Frank alone."),
+               _h("targeted_explanation", "Model people as vertices, friendships as edges. Run traversal from Alice → visits {Alice,Bob,Carol}. Next unvisited is Dave → visits {Dave,Eve}. Next unvisited is Frank → visits {Frank}. Count = 3.")])
+
 
 def _build_variations():
     """A second, differently-angled exercise for every skill that would otherwise repeat
@@ -1051,69 +1313,94 @@ def _build_variations():
                        ("b", "A shopping list of items to buy"),
                        ("c", "A single phone number"),
                        ("d", "An alphabetical list of student names")], "a",
-                 "Entities plus meaningful connections = graph territory.", (1, 1, 1, 1))),
+                  "Entities plus meaningful connections = graph territory.", (1, 1, 1, 1))),
         "vertices_edges": (
             "In a course-prerequisite diagram (CS101 requires CS100), what are the vertices and edges?",
             _mcq("", [("a", "Vertices = courses; edges = prerequisite relations between them"),
                        ("b", "Vertices = prerequisites; edges = courses"),
                        ("c", "Vertices = students; edges = grades"),
                        ("d", "Vertices = semesters; edges = credits")], "a",
-                 "The entities are courses; the 'requires' relation connects them.", (1, 1, 1, 1))),
+                  "The entities are courses; the 'requires' relation connects them.", (1, 1, 1, 1))),
         "directed_vs_undirected": (
             "On Facebook, friendship is mutual: if A is friends with B, B is friends with A. Which model fits?",
             _mcq("", [("a", "Directed graph"), ("b", "Undirected graph"),
                        ("c", "Weighted graph"), ("d", "Multigraph with loops")], "b",
-                 "Mutual relationships need no arrow direction: undirected.", (2, 1, 2, 2))),
+                  "Mutual relationships need no arrow direction: undirected.", (2, 1, 2, 2))),
         "weighted_vs_unweighted": (
             "Which graph treats EVERY connection as costing exactly one step?",
             _mcq("", [("a", "A weighted graph with equal weights"), ("b", "An unweighted graph"),
                        ("c", "A directed graph"), ("d", "A disconnected graph")], "b",
-                 "Unweighted = every edge is one uniform step; weights attach per-edge numbers.", (1, 1, 1, 2))),
+                  "Unweighted = every edge is one uniform step; weights attach per-edge numbers.", (1, 1, 1, 2))),
         "path": (
             "Edges: A-B, B-C, D-E. Is there a path from A to E?",
             _mcq("", [("a", "Yes, via B and C"), ("b", "Yes, directly"),
                        ("c", "No — C and D are not connected"), ("d", "Only if the graph is weighted")], "c",
-                 "C and D have no edge between them, so the chain breaks: A and E are in different components.", (2, 1, 2, 2))),
+                  "C and D have no edge between them, so the chain breaks: A and E are in different components.", (2, 1, 2, 2))),
         "cycle": (
             "A tree has edges A-B and B-C. Adding which single edge creates a cycle?",
             _mcq("", [("a", "A-C"), ("b", "A-D"), ("c", "B-D"), ("d", "None can")], "a",
-                 "A → B → C → A returns to its start: a cycle. Any edge touching a new vertex D stays acyclic.", (2, 1, 2, 2))),
+                  "A → B → C → A returns to its start: a cycle. Any edge touching a new vertex D stays acyclic.", (2, 1, 2, 2))),
         "connectedness": (
             "Edges: A-B, B-C and X-Y. The graph has two separate pieces. How many connected components does it have?",
             _mcq("", [("a", "1"), ("b", "2"), ("c", "3"), ("d", "5")], "b",
-                 "{A,B,C} and {X,Y} are each connected with no path between them: 2 components.", (2, 1, 2, 2))),
+                  "{A,B,C} and {X,Y} are each connected with no path between them: 2 components.", (2, 1, 2, 2))),
         "edge_list": (
             "When is an edge list the RIGHT representation choice?",
             _mcq("", [("a", "When you constantly ask 'who are the neighbors of X?'"),
                        ("b", "When you receive and process edges one by one (e.g. a plain input file)"),
                        ("c", "When you need O(1) edge lookups"),
                        ("d", "Never — it is always wrong")], "b",
-                 "Edge lists shine as a compact input format; neighbor queries need an adjacency list instead.", (1, 2, 1, 1))),
+                  "Edge lists shine as a compact input format; neighbor queries need an adjacency list instead.", (1, 2, 1, 1))),
         "why_traversal": (
             "Which question can plain BFS/DFS traversal NOT answer on its own?",
             _mcq("", [("a", "Which vertices are reachable from S?"),
                        ("b", "How many vertices are in S's component?"),
                        ("c", "The cheapest route when roads have different tolls (weighted costs)"),
                        ("d", "Is there any path from S to T?")], "c",
-                 "Weighted shortest paths need more than plain traversal (that is Dijkstra, a later version).", (2, 1, 2, 2))),
+                  "Weighted shortest paths need more than plain traversal (that is Dijkstra, a later version).", (2, 1, 2, 2))),
         "traversal_state": (
             "Which three pieces of state does every BFS/DFS carry while running?",
             _mcq("", [("a", "The current vertex, the visited set, and the frontier (queue/stack)"),
                        ("b", "The sorted vertex list, the edge weights, and the matrix"),
                        ("c", "Only the answer"),
                        ("d", "The adjacency matrix, the degree table, and the cycle count")], "a",
-                 "Current + visited + frontier is the complete working memory of a traversal.", (2, 2, 2, 2))),
+                  "Current + visited + frontier is the complete working memory of a traversal.", (2, 2, 2, 2))),
         "bfs_intuition": (
             "Star graph: A→[B,C,D,E,F], all others→[]. BFS starts at A. What is the visit order?",
             _mcq("", [("a", "A, then B C D E F in listed order"),
                        ("b", "F E D C B A"), ("c", "B D F A C E"), ("d", "A only")], "a",
-                 "Level 0 = A; every other vertex is level 1 and leaves the queue in listed order.", (3, 1, 3, 3))),
+                  "Level 0 = A; every other vertex is level 1 and leaves the queue in listed order.", (3, 1, 3, 3))),
         "dfs_intuition": (
             "graph: A→[B,C], B→[D], C→[], D→[]. Recursive DFS from A (listed neighbor order) visits...",
             _mcq("", [("a", "A, B, D, C — it dives B's branch to D before touching C"),
                        ("b", "A, B, C, D — it sweeps level by level"),
                        ("c", "A, C, B, D"), ("d", "D, B, C, A")], "a",
-                 "Depth-first: finish the whole B→D route before backtracking to C.", (3, 1, 3, 3))),
+                  "Depth-first: finish the whole B→D route before backtracking to C.", (3, 1, 3, 3))),
+
+        # Layer 1 variations
+        "traversal_boundary": (
+            "Graph: 1-2 and 3-4 and 5 (three components). DFS from 1 visits 1,2 and stops. "
+            "What does the visited set represent?",
+            _mcq("", [("a", "All vertices in the graph"),
+                       ("b", "Exactly the component containing vertex 1"),
+                       ("c", "Vertices 1 and 2 only, by coincidence"),
+                       ("d", "The vertices in level order")], "b",
+                  "One traversal = one component. DFS from 1 visits exactly {1,2}.", (3, 2, 3, 3))),
+        "component_discovery": (
+            "After BFS from A visits {A,B,C}, vertex D is unvisited. What does this mean?",
+            _mcq("", [("a", "BFS failed to reach D"),
+                       ("b", "D is in a different component — start a new traversal from D"),
+                       ("c", "The graph is disconnected so BFS cannot continue"),
+                       ("d", "D is an isolated vertex with no edges")], "b",
+                  "Unvisited after traversal = different component. Start a new traversal from D.", (3, 3, 3, 3))),
+        "component_enumeration": (
+            "The outer loop `for v in range(n): if not visited[v]: bfs(v)` counts components. "
+            "Why is it O(V+E) and not O(V(V+E))?",
+            _mcq("", [("a", "Because V is small"),
+                       ("b", "The visited set prevents any vertex from being processed twice across all BFS runs"),
+                       ("c", "Because BFS is fast"),
+                       ("d", "It is actually O(V(V+E))")], "b",
+                  "Each vertex/edge is processed at most once total — visited set prevents re-processing.", (3, 4, 4, 4))),
     }
     for skill_id, (prompt, (payload, difficulty)) in VARIATIONS.items():
         teach = [u for u in UNITS if u.skill_id == skill_id and u.unit_type == UnitType.TEACH]
@@ -1138,7 +1425,8 @@ def _apply_amendments():
             "dfs_manual_tracing", "dfs_implementation", "dfs_time_complexity", "dfs_space_complexity",
             "explicit_stack_dfs"],
         "Module F - Integration & Application": ["bfs_vs_dfs", "recognizing_traversal",
-            "traversal_application", "v0_readiness"],
+            "traversal_application", "v0_readiness",
+            "traversal_boundary", "component_discovery", "component_enumeration"],
     }
     descriptions = {
         "graph_definition": "Understand a graph as a model of entities and relationships.",
@@ -1179,6 +1467,10 @@ def _apply_amendments():
         "recognizing_traversal": "Recognize problem situations where plain traversal applies.",
         "traversal_application": "Apply traversal independently to count reachable vertices.",
         "v0_readiness": "Demonstrate the full V0 outcome list independently.",
+        # Layer 1 descriptions
+        "traversal_boundary": "Understand that one traversal explores exactly one connected component.",
+        "component_discovery": "Recognize that an unvisited vertex after traversal signals a new component.",
+        "component_enumeration": "Implement the outer loop to count and label all connected components.",
     }
     evidence = {
         "degree": {EvidenceType.RECOGNITION, EvidenceType.CONSTRUCTION},
@@ -1206,6 +1498,10 @@ def _apply_amendments():
         "traversal_application": {EvidenceType.RECOGNITION, EvidenceType.APPLICATION},
         "v0_readiness": {EvidenceType.RECOGNITION, EvidenceType.APPLICATION,
                          EvidenceType.EXPLANATION},
+        # Layer 1 evidence requirements
+        "traversal_boundary": {EvidenceType.RECOGNITION, EvidenceType.EXPLANATION},
+        "component_discovery": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.EXPLANATION},
+        "component_enumeration": {EvidenceType.RECOGNITION, EvidenceType.IMPLEMENTATION, EvidenceType.APPLICATION},
     }
     module_order = list(modules.keys())
     skill_order = {sid: i for i, m in enumerate(module_order) for sid in modules[m]}
@@ -1228,24 +1524,27 @@ def _apply_amendments():
         InteractionType.REFLECTION: ActivityRole.REFLECTION,
     }
     role_overrides = {
-        "traversal_application": (InteractionType.CODE_WRITING, ActivityRole.APPLICATION),
-        "v0_readiness": (InteractionType.CODE_WRITING, ActivityRole.APPLICATION),
+        ("traversal_application", InteractionType.CODE_WRITING): ActivityRole.APPLICATION,
+        ("v0_readiness", InteractionType.CODE_WRITING): ActivityRole.APPLICATION,
+        ("component_enumeration", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
     }
     problem_keys = {("bfs_implementation", InteractionType.CODE_WRITING),
                     ("dfs_implementation", InteractionType.CODE_WRITING),
                     ("traversal_application", InteractionType.CODE_WRITING),
-                    ("v0_readiness", InteractionType.CODE_WRITING)}
+                    ("v0_readiness", InteractionType.CODE_WRITING),
+                    ("component_enumeration", InteractionType.CODE_WRITING)}
     capabilities = {
         ("bfs_implementation", InteractionType.CODE_WRITING): {EvidenceType.TRACE, EvidenceType.RECOGNITION},
         ("dfs_implementation", InteractionType.CODE_WRITING): {EvidenceType.TRACE, EvidenceType.RECOGNITION},
         ("traversal_application", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.RECOGNITION},
         ("v0_readiness", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.EXPLANATION},
+        ("component_enumeration", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.APPLICATION},
     }
     for e in EXERCISES:
         role = role_by_type[e.interaction_type]
-        override = role_overrides.get(e.skill_id)
-        if override and override[0] == e.interaction_type:
-            role = override[1]
+        override = role_overrides.get((e.skill_id, e.interaction_type))
+        if override:
+            role = override
         e.role = role
         e.scope = ActivityScope.PROBLEM if (e.skill_id, e.interaction_type) in problem_keys \
             else ActivityScope.MICRO

@@ -5,7 +5,7 @@ from dsa_tutor.content.curriculum_v0 import EXERCISES, PREREQS, SKILLS, UNITS
 
 
 def test_38_skills_encoded_with_modules():
-    assert len(SKILLS) == 38, f"expected 38 V0 skills after review amendments, got {len(SKILLS)}"
+    assert len(SKILLS) == 41, f"expected 41 V0 skills after review amendments + Layer 1, got {len(SKILLS)}"
     modules = {s.module for s in SKILLS}
     assert len(modules) == 6 and any(m.startswith("Module A") for m in modules)
 
@@ -71,7 +71,7 @@ def test_session_plan_lists_upcoming_units(service):
     assert plan["items"], "a fresh learner must have planned units"
     assert plan["questions"] >= plan["units"]  # each unit carries at least one question
     assert plan["items"][0]["theory"] is True   # study section comes first
-    assert plan["total_skills"] == 38
+    assert plan["total_skills"] == 41
 
 
 def test_evidence_requirements_are_feasible(curriculum):
