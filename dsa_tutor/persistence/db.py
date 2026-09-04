@@ -119,7 +119,9 @@ class Database:
     def run_schema(self, sql_text: str) -> None:
         """Execute a migration script statement-by-statement (pymysql can't multi-statement).
 
-        Runs on a server-level connection so the script may contain CREATE DATABASE / USE.
+        Statements run against the CONFIGURED database (ensure_database creates it first);
+        any CREATE DATABASE / USE lines in the script are treated as hints only, so a
+        configured DB_NAME (env) is honored instead of a hardcoded schema name.
         """
         statements = []
         for chunk in sql_text.split(";"):
@@ -128,10 +130,14 @@ class Database:
                      if ln.strip() and not ln.strip().startswith("--")]
             if lines:
                 statements.append("\n".join(lines))
+        name = re.sub(r"[^A-Za-z0-9_]", "", self.config.name)
         conn = self.connect(server_level=True)
         try:
             with conn.cursor() as cur:
+                cur.execute(f"USE `{name}`")
                 for statement in statements:
+                    if re.match(r"(?is)^\s*(CREATE\s+DATABASE|USE)\b", statement):
+                        continue
                     cur.execute(statement)
             conn.commit()
         finally:

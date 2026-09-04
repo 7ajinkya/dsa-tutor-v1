@@ -152,21 +152,9 @@ class MySQLStorage:
     def attempts_for_learner(self, learner_id: int) -> list[Attempt]:
         with self.db.transaction() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT * FROM attempts WHERE learner_id=%s ORDER BY created_at", (learner_id,))
+                cur.execute("SELECT * FROM attempts WHERE learner_id=%s ORDER BY created_at, id", (learner_id,))
                 rows = cur.fetchall()
-        attempts = []
-        for r in rows:
-            attempts.append(Attempt(
-                id=r["id"], session_id=r["session_id"], learner_id=r["learner_id"],
-                exercise_id=r["exercise_id"], skill_id=r["skill_id"], response=r["response"],
-                is_correct=r["is_correct"], score=r["score"],
-                evaluation=json.loads(r["evaluation"]), hints_used=r["hints_used"],
-                independent_success=r["independent_success"], completed=r["completed"],
-                solution_revealed=r["solution_revealed"], ai_provider=r["ai_provider"],
-                ai_model=r["ai_model"], prompt_version=r["prompt_version"],
-                idempotency_key=r.get("idempotency_key"),
-                created_at=_utc(r["created_at"])))
-        return attempts
+        return [self._row_to_attempt(r) for r in rows]
 
     def find_attempt_by_idempotency_key(self, learner_id: int, session_id: int,
                                         idempotency_key: str) -> Attempt | None:
@@ -180,13 +168,21 @@ class MySQLStorage:
                 r = cur.fetchone()
         if r is None:
             return None
+        return self._row_to_attempt(r)
+
+    @staticmethod
+    def _row_to_attempt(r: dict) -> Attempt:
+        # MySQL BOOLEAN is TINYINT: coerce back to the domain's Optional[bool]
+        def _bool(value):
+            return None if value is None else bool(value)
         return Attempt(
             id=r["id"], session_id=r["session_id"], learner_id=r["learner_id"],
             exercise_id=r["exercise_id"], skill_id=r["skill_id"], response=r["response"],
-            is_correct=r["is_correct"], score=r["score"],
+            is_correct=_bool(r["is_correct"]), score=r["score"],
             evaluation=json.loads(r["evaluation"]), hints_used=r["hints_used"],
-            independent_success=r["independent_success"], completed=r["completed"],
-            solution_revealed=r["solution_revealed"], ai_provider=r["ai_provider"],
+            max_assistance_level=r.get("max_assistance_level", 0),
+            independent_success=_bool(r["independent_success"]), completed=_bool(r["completed"]),
+            solution_revealed=_bool(r["solution_revealed"]), ai_provider=r["ai_provider"],
             ai_model=r["ai_model"], prompt_version=r["prompt_version"],
             idempotency_key=r.get("idempotency_key"),
             created_at=_utc(r["created_at"]))
@@ -199,20 +195,27 @@ class MySQLStorage:
                 for r in records:
                     cur.execute(
                         "INSERT INTO assessment_evidence (learner_id, skill_id, attempt_id, "
-                        "dimension, outcome, weight, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s)",
+                        "dimension, evidence_type, assistance_level, outcome, weight, created_at) "
+                        "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                         (learner_id, r.skill_id, r.attempt_id, r.dimension.value,
+                         r.evidence_type.value, r.assistance_level,
                          r.outcome.value, r.weight, r.created_at))
 
     def evidence_for_learner(self, learner_id: int) -> list[EvidenceRecord]:
-        from ..domain.models import EvidenceOutcome, MasteryDimension
+        from ..domain.models import EvidenceOutcome, EvidenceType, MasteryDimension
         with self.db.transaction() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "SELECT skill_id, dimension, outcome, weight, created_at, attempt_id "
-                    "FROM assessment_evidence WHERE learner_id=%s ORDER BY created_at", (learner_id,))
+                    "SELECT skill_id, dimension, evidence_type, assistance_level, outcome, "
+                    "weight, created_at, attempt_id "
+                    "FROM assessment_evidence WHERE learner_id=%s ORDER BY created_at, id", (learner_id,))
                 rows = cur.fetchall()
+        # evidence_type drives every mastery predicate (derive_state) — restoring it is
+        # what makes mastery survive an application restart
         return [EvidenceRecord(attempt_id=r["attempt_id"], skill_id=r["skill_id"],
                                dimension=MasteryDimension(r["dimension"]),
+                               evidence_type=EvidenceType(r["evidence_type"]),
+                               assistance_level=r["assistance_level"],
                                outcome=EvidenceOutcome(r["outcome"]),
                                weight=r["weight"], created_at=_utc(r["created_at"])) for r in rows]
 
@@ -322,14 +325,14 @@ class MySQLStorage:
                     "INSERT INTO attempts (session_id, learner_id, exercise_id, skill_id, response, "
                     "is_correct, score, evaluation, hints_used, max_assistance_level, "
                     "independent_success, completed, "
-                    "solution_revealed, ai_provider, ai_model, prompt_version, created_at) "
-                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    "solution_revealed, ai_provider, ai_model, prompt_version, idempotency_key, created_at) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                     (attempt.session_id, attempt.learner_id, attempt.exercise_id, attempt.skill_id,
                      attempt.response, attempt.is_correct, attempt.score, _json(attempt.evaluation),
                      attempt.hints_used, attempt.max_assistance_level,
                      attempt.independent_success, attempt.completed,
                      attempt.solution_revealed, attempt.ai_provider, attempt.ai_model,
-                     attempt.prompt_version, attempt.created_at))
+                     attempt.prompt_version, attempt.idempotency_key, attempt.created_at))
                 attempt_id = cur.lastrowid
                 for r in evidence:
                     r.attempt_id = attempt_id
@@ -381,14 +384,19 @@ class MySQLStorage:
         return attempt_id
 
     def ensure_exercise(self, exercise) -> None:
-        """Persist a generated (AI-source) exercise so attempts satisfy the FK."""
+        """Persist a generated (AI-source) exercise so attempts satisfy the FK and the
+        activity survives an application restart."""
         with self.db.transaction() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT IGNORE INTO exercises (id, unit_id, skill_id, ordering, interaction_type, prompt, "
+                    "INSERT IGNORE INTO exercises (id, unit_id, skill_id, ordering, role, scope, "
+                    "required_capabilities, interaction_type, prompt, "
                     "payload, difficulty, language, hint_ladder, max_hints, requires_ai, source, "
-                    "prompt_version, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    "prompt_version, created_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
                     (exercise.id, exercise.unit_id, exercise.skill_id, exercise.ordering,
+                     exercise.role.value, exercise.scope.value,
+                     _json(sorted(t.value for t in exercise.required_capabilities))
+                     if exercise.required_capabilities else None,
                      exercise.interaction_type.value, exercise.prompt,
                      _json(exercise.payload), _json(exercise.difficulty), exercise.language,
                      _json(exercise.hint_ladder), exercise.max_hints, exercise.requires_ai,
@@ -396,7 +404,37 @@ class MySQLStorage:
         self.generated_exercises[exercise.id] = exercise
 
     def get_exercise(self, exercise_id: str):
-        return self.generated_exercises.get(exercise_id)
+        """Resolve an exercise: in-memory cache first, then the exercises table for
+        AI-GENERATED activities only (curated content stays code-backed — an activity
+        chosen before a restart must still be resolvable, without masquerading as
+        AI-generated)."""
+        cached = self.generated_exercises.get(exercise_id)
+        if cached is not None:
+            return cached
+        with self.db.transaction() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT * FROM exercises WHERE id=%s AND source='ai'", (exercise_id,))
+                row = cur.fetchone()
+        if row is None:
+            return None
+        from ..domain.models import (
+            ActivityRole, ActivityScope, EvidenceType, Exercise, InteractionType,
+        )
+        exercise = Exercise(
+            id=row["id"], unit_id=row["unit_id"], skill_id=row["skill_id"],
+            interaction_type=InteractionType(row["interaction_type"]),
+            prompt=row["prompt"], payload=json.loads(row["payload"]),
+            ordering=row["ordering"], role=ActivityRole(row["role"]),
+            scope=ActivityScope(row["scope"]),
+            required_capabilities=frozenset(
+                EvidenceType(t) for t in json.loads(row["required_capabilities"]))
+            if row["required_capabilities"] else frozenset(),
+            difficulty=json.loads(row["difficulty"]), language=row["language"],
+            hint_ladder=json.loads(row["hint_ladder"]), max_hints=row["max_hints"],
+            requires_ai=row["requires_ai"], source=row["source"],
+            prompt_version=row["prompt_version"])
+        self.generated_exercises[exercise.id] = exercise
+        return exercise
 
     # ------------------------------------------------ AI interaction / hint logs
     def log_ai_interaction(self, learner_id: int, session_id: int | None, operation: str,

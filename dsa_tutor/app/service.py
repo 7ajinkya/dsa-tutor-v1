@@ -44,13 +44,16 @@ class TurnView:
 
 
 class TutorService:
-    def __init__(self, storage, config, curriculum: Curriculum | None = None, ai=None):
+    def __init__(self, storage, config, curriculum: Curriculum | None = None, ai=None,
+                 learner_name: str = LEARNER_NAME):
         self.storage = storage
         self.config = config
         self.curriculum = curriculum or build_curriculum()
         self.ai = ai or get_ai_tutor(config)
         self.engine = LearningEngine(self.curriculum, config.engine)
-        self.learner = self.storage.get_or_create_learner(LEARNER_NAME)
+        # learner identity is the persistent users row keyed by name: a fresh process
+        # resolves the same learner and their state, sessions, attempts and evidence
+        self.learner = self.storage.get_or_create_learner(learner_name)
         self.session: TutoringSession | None = None
         self._gen_counter = 0
         self._confidences: dict[str, int] = {}

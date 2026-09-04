@@ -89,6 +89,8 @@ class MemoryStorage:
             self.evidence.append(r)
 
     def evidence_for_learner(self, learner_id: int) -> list[EvidenceRecord]:
+        # EvidenceRecord carries no learner id: each MemoryStorage instance holds a
+        # single learner's records (one fresh instance per service/test)
         return list(self.evidence)
 
     def upsert_assessment(self, assessment: SkillAssessment) -> None:
