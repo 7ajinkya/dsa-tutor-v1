@@ -95,6 +95,20 @@ SKILLS = [
     # path_reconstruction: parent/predecessor tracking → rebuild the actual shortest path
     _skill("path_reconstruction", "Path reconstruction", 51, "Module F - Integration & Application",
            (3, 4, 4, 4), {E, R, T}),
+
+    # --- Layer 3: Undirected Cycle Detection (Graph Slice A) ---
+    # cycle_encounter_reasoning: interpret meeting a visited neighbor while traversing
+    # an undirected graph — not every visited neighbor is cycle evidence
+    _skill("cycle_encounter_reasoning", "Cycle encounter reasoning", 52,
+           "Module F - Integration & Application", (3, 2, 3, 3), {K, R}),
+    # parent_aware_traversal: distinguish the parent edge (the arrival edge seen from
+    # the other side) from a genuine cycle encounter
+    _skill("parent_aware_traversal", "Parent-aware traversal", 53,
+           "Module F - Integration & Application", (3, 3, 4, 3), {K, E, R}),
+    # undirected_cycle_detection: the synthesis — DFS detection, disconnected graphs,
+    # BFS variant with (vertex, parent) queue entries, self-loops, O(V+E)
+    _skill("undirected_cycle_detection", "Undirected cycle detection", 54,
+           "Module F - Integration & Application", (4, 4, 4, 4), {E, R, T}),
 ]
 
 PREREQS = [
@@ -185,6 +199,19 @@ PREREQS = [
     SkillPrerequisite("path_reconstruction", "bfs_distance", PS.CORE),
     SkillPrerequisite("path_reconstruction", "bfs_implementation", PS.CORE),
     SkillPrerequisite("path_reconstruction", "bfs_manual_tracing", PS.SUPPORTING),
+
+    # --- Layer 3: Undirected Cycle Detection ---
+    SkillPrerequisite("cycle_encounter_reasoning", "cycle", PS.CORE),
+    SkillPrerequisite("cycle_encounter_reasoning", "dfs_visited_handling", PS.CORE),
+    SkillPrerequisite("cycle_encounter_reasoning", "bfs_visited_handling", PS.SUPPORTING),
+    SkillPrerequisite("cycle_encounter_reasoning", "dfs_manual_tracing", PS.SUPPORTING),
+    SkillPrerequisite("parent_aware_traversal", "cycle_encounter_reasoning", PS.CORE),
+    SkillPrerequisite("parent_aware_traversal", "dfs_implementation", PS.CORE),
+    SkillPrerequisite("parent_aware_traversal", "path_reconstruction", PS.SUPPORTING),
+    SkillPrerequisite("undirected_cycle_detection", "parent_aware_traversal", PS.CORE),
+    SkillPrerequisite("undirected_cycle_detection", "dfs_implementation", PS.CORE),
+    SkillPrerequisite("undirected_cycle_detection", "component_enumeration", PS.SUPPORTING),
+    SkillPrerequisite("undirected_cycle_detection", "bfs_implementation", PS.SUPPORTING),
 ]
 
 # ------------------------------------------------------------- theory ----
@@ -450,6 +477,52 @@ THEORY = {
         "shortest paths exist, BFS returns ONE valid shortest path — the one its discovery order "
         "happened to build — not all of them. The whole routine is still one BFS: O(V+E) to fill "
         "distance and parent, plus at most O(V) to walk the path backward."
+    ),
+
+    # --- Layer 3 theory ---
+    "cycle_encounter_reasoning": (
+        "Run a DFS on an undirected graph and watch what the traversal actually sees. The edge "
+        "A—B lives in the adjacency list TWICE — as A→B and as B→A — so when you walk A → B, the "
+        "vertex B will scan its neighbor list, find A there, and observe: 'A is already visited.' "
+        "Nothing went wrong: that is the same physical edge, seen from the other side. So the raw "
+        "observation 'my neighbor is visited' is ambiguous. On a tree it happens at every single "
+        "vertex — each one sees its parent — and on a graph with cycles it additionally happens at "
+        "the vertex that closes the loop. Reading the observation therefore needs one more piece of "
+        "information: WHERE the traversal came from. When the visited neighbor is the vertex you "
+        "just came from, you are only re-reading the edge you arrived on. When it is anyone else, a "
+        "second route has reached an already-visited vertex — the first hard evidence of a cycle. "
+        "This skill is only about seeing the situation correctly; the detection decision comes next."
+    ),
+    "parent_aware_traversal": (
+        "The parent of the current vertex is the vertex from which the traversal entered it. In "
+        "recursive DFS it becomes one extra parameter: dfs(graph, v, parent), and each call passes "
+        "itself as the child's parent; the start has no parent. With it, the encounter rule from "
+        "the previous skill becomes precise: while exploring v's neighbors, meeting the parent is "
+        "normal — it is the reverse direction of the arrival edge, present in every undirected "
+        "adjacency list — while meeting any OTHER visited vertex is genuine cycle evidence. Two "
+        "tracing notes: the parent check applies to the CURRENT call only — a vertex visited by an "
+        "earlier branch of the DFS is not your parent even if it is adjacent, and THAT encounter is "
+        "exactly the evidence you must not skip; and the parent edge is skipped once per endpoint, "
+        "so no information is lost — every edge is still examined from both sides, which is why the "
+        "O(V+E) bound survives. You already know parents from BFS path reconstruction "
+        "(parent[neighbor] = discoverer); here the same idea moves into the DFS signature, where it "
+        "answers 'which edge did I arrive on?' instead of 'how do I walk back?'"
+    ),
+    "undirected_cycle_detection": (
+        "Put the pieces together and cycle detection is four small additions to the DFS you already "
+        "write: mark v visited on entry; skip the neighbor equal to parent; if a neighbor is visited "
+        "— and it is not the parent — return True; otherwise recurse, passing v as the new parent. A "
+        "tree returns False even though every vertex sees its parent visited; one extra edge returns "
+        "True at the vertex that closes the loop. One traversal covers one component only (the "
+        "traversal boundary), so the outer loop — for each vertex, if not visited, run dfs(v, none) "
+        "— is required: the graph has a cycle if ANY component does, and isolated vertices are "
+        "simply component-less starts whose dfs immediately returns False. The same invariant "
+        "translates directly to BFS: store (vertex, parent) pairs in the queue instead of bare "
+        "vertices, mark neighbors visited when enqueueing, and apply the identical test — a visited "
+        "non-parent neighbor proves a cycle. Self-loops need no special code: the vertex appears in "
+        "its own neighbor list, it is visited (you marked it on entry), and it is not the parent — a "
+        "cycle of length one, correctly detected. Everything stays O(V+E): each vertex is visited "
+        "once and each edge is examined from both endpoints across the whole run."
     ),
 }
 
@@ -744,6 +817,32 @@ _mcq_bank("path_reconstruction", "parent = {B: A, C: A, D: B, E: C, F: D}, paren
           "back from F and reversing, what is the path A→F?",
           [("a", "A B D F"), ("b", "F D B A"), ("c", "A C E F"), ("d", "A B C D F")], "a",
           "Walking parents from F gives F, D, B, A; reversing yields A B D F — the discovery tree's route.", (3, 4, 4, 4))
+
+# Layer 3 MCQ banks
+_mcq_bank("cycle_encounter_reasoning", "An undirected graph is stored with every edge in BOTH endpoint "
+          "adjacency lists. During a DFS, vertex C scans its neighbors and finds B already visited. "
+          "By itself, what does this observation prove?",
+          [("a", "A cycle exists"),
+           ("b", "Nothing yet — B could simply be C's parent: the reverse direction of the edge the traversal arrived on"),
+           ("c", "The visited set is being maintained incorrectly"),
+           ("d", "The adjacency list was built wrongly")], "b",
+          "On ANY undirected graph — even a tree — every non-start vertex sees its parent as visited, because the arrival edge is stored both ways. Only a visited NON-parent is cycle evidence.", (3, 2, 3, 3))
+_mcq_bank("parent_aware_traversal", "DFS is at vertex D, having entered from A — so A is D's parent. "
+          "D's neighbor list contains A (visited), B (unvisited) and C (visited). Which observation "
+          "is cycle evidence?",
+          [("a", "A is visited"),
+           ("b", "B is unvisited"),
+           ("c", "C is visited and C is not D's parent"),
+           ("d", "All three observations together prove a cycle")], "c",
+          "The visited parent is the arrival edge seen from the other side — normal. A visited neighbor other than the parent means a second route reached it earlier: cycle evidence.", (3, 3, 4, 3))
+_mcq_bank("undirected_cycle_detection", "DFS-with-parent started at vertex 0, explored component "
+          "{0, 1} and returned False. Vertices 2, 3, 4 and 5 were never visited. What is the "
+          "correct graph-level conclusion?",
+          [("a", "The whole graph is acyclic"),
+           ("b", "Nothing yet — each remaining component needs its own traversal via the outer loop before the answer exists"),
+           ("c", "DFS cannot answer cycle questions, restart with BFS"),
+           ("d", "Clear the visited set and run the same DFS again from 0")], "b",
+          "One traversal = one component. 'No cycle in this component' must be established for every component: run dfs from each unvisited vertex and report a cycle if any run finds one.", (3, 3, 4, 4))
 
 _mcq_bank("adjacency", "Two vertices are adjacent when...",
           [("a", "An edge connects them directly"),
@@ -1665,6 +1764,319 @@ def _build_practice():
                _h("light_hint", "Track who discovered each person; then walk backward from Marco to Priya and reverse the sequence."),
                _h("targeted_explanation", "Unweighted graph + fewest edges → BFS. During the BFS record parent[person] = discoverer. Afterward walk parents from Marco back to Priya and reverse: the chain of people and its length both fall out of one BFS — still O(V+E).")])
 
+    # --- Layer 3: cycle_encounter_reasoning ---
+    uid = _unit("cycle_encounter_reasoning", "Cycle encounter reasoning — practice",
+                "Observe what traversal sees when it meets a visited neighbor in an undirected graph",
+                UnitType.PRACTICE, dims={K, E, R})
+    _ex(uid, "cycle_encounter_reasoning", InteractionType.CODE_TRACING,
+        "This DFS prints a line every time it meets an already-visited neighbor, tagged with "
+        "whether that neighbor is the vertex it came from. The graph is the TREE A—B—C stored as "
+        "an undirected adjacency list. What does it print?\n\n"
+        'graph = {"A": ["B"], "B": ["A", "C"], "C": ["B"]}\n'
+        "visited = set()\n\n"
+        "def dfs(v, came_from):\n"
+        "    visited.add(v)\n"
+        "    for nbr in graph[v]:\n"
+        "        if nbr not in visited:\n"
+        "            dfs(nbr, v)\n"
+        "        elif nbr == came_from:\n"
+        '            print(v, "sees", nbr, "(parent)")\n'
+        "        else:\n"
+        '            print(v, "sees", nbr, "(not parent)")\n\n'
+        'dfs("A", None)\n'
+        'print("finished")',
+        {"code": "", "expected_output": "B sees A (parent)\nC sees B (parent)\nfinished"},
+        d((3, 2, 3, 3)), ordering=1,
+        hints=[_h("socratic_question", "Which neighbor lists contain A — and from which call is A the vertex the traversal came from?"),
+               _h("micro_question", "When dfs('C', 'B') scans graph['C'], is 'B' already visited? Is it the came_from?"),
+               _h("light_hint", "On a tree the only visited neighbor any vertex can possibly meet is its own parent."),
+               _h("targeted_explanation", "dfs('B','A') meets A: visited, and A is the came_from → '(parent)'. dfs('C','B') meets B: visited, and B is the came_from → '(parent)'. A tree produces parent meetings only — '(not parent)' never appears.")])
+    _ex(uid, "cycle_encounter_reasoning", InteractionType.FREE_FORM,
+        "In an undirected graph stored as an adjacency list, every vertex DFS enters will see at "
+        "least one visited neighbor: its parent. So 'my neighbor is visited' alone cannot "
+        "distinguish a tree from a graph full of cycles. Explain in your own words (a) why the "
+        "parent always shows up as visited, and (b) what extra information turns this observation "
+        "into something meaningful.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["both", "two directions", "both directions", "twice", "reverse", "other side", "same edge", "back"],
+             "text": "The arrival edge is stored in both adjacency lists, so the parent appears in the current vertex's neighbor list."},
+            {"id": "p2", "keywords": ["visited", "marked", "mark", "entry", "earlier", "before"],
+             "text": "The parent was marked visited when the traversal entered it earlier."},
+            {"id": "p3", "keywords": ["parent", "came from", "came_from", "arrival", "arrived", "where i came", "previous", "which edge"],
+             "text": "The missing information is WHERE the traversal came from — the parent identifies the arrival edge."},
+            {"id": "p4", "keywords": ["not the parent", "non-parent", "not parent", "second route", "two routes", "another route", "other"],
+             "text": "A visited neighbor that is NOT the parent means a second route reached it — genuine cycle evidence."},
+         ], "min_points": 2},
+        d((3, 2, 4, 3)), requires_ai=True, ordering=2,
+        hints=[_h("socratic_question", "The edge A—B is stored as A→B and B→A. When you stand at B, what does B's list say about A?"),
+               _h("micro_question", "Was the parent marked visited before or after you entered the current vertex?"),
+               _h("light_hint", "The extra information is the vertex you just came from — the parent."),
+               _h("targeted_explanation", "(a) Each edge sits in both endpoint lists, so the arrival edge points back at the parent, which was already marked visited on entry. (b) Record where the traversal came from: meeting that parent is the same edge re-read; meeting any OTHER visited vertex is a second route — cycle evidence.")])
+    _ex(uid, "cycle_encounter_reasoning", InteractionType.CODE_TRACING,
+        "The same recording DFS, but the graph now has one extra edge C—A that closes the triangle "
+        "A—B—C. What does it print?\n\n"
+        'graph = {"A": ["B", "C"], "B": ["A", "C"], "C": ["B", "A"]}\n'
+        "visited = set()\n\n"
+        "def dfs(v, came_from):\n"
+        "    visited.add(v)\n"
+        "    for nbr in graph[v]:\n"
+        "        if nbr not in visited:\n"
+        "            dfs(nbr, v)\n"
+        "        elif nbr == came_from:\n"
+        '            print(v, "sees", nbr, "(parent)")\n'
+        "        else:\n"
+        '            print(v, "sees", nbr, "(not parent)")\n\n'
+        'dfs("A", None)\n'
+        'print("finished")',
+        {"code": "",
+         "expected_output": "B sees A (parent)\nC sees B (parent)\nC sees A (not parent)\nA sees C (not parent)\nfinished"},
+        d((3, 3, 4, 3)), ordering=3,
+        hints=[_h("socratic_question", "After dfs('C','B') returns, control is back inside dfs('A', None) — which neighbor of A is scanned next, and has it become visited in the meantime?"),
+               _h("micro_question", "Which meetings happen while C's call is still running — and which only after it returns?"),
+               _h("light_hint", "The triangle is closed the moment C sees A; back at the start, A re-reads the same loop from its side."),
+               _h("targeted_explanation", "B meets its parent A; C meets its parent B, then sees A — visited and NOT its parent: the cycle, found. Back at A, neighbor C is now visited and not A's came_from: the same loop seen from the other endpoint. A tree can never produce a '(not parent)' line.")])
+
+    # --- Layer 3: parent_aware_traversal ---
+    uid = _unit("parent_aware_traversal", "Parent-aware traversal — practice",
+                "Record the parent and use it to separate arrival edges from cycle evidence",
+                UnitType.PRACTICE, dims={K, E, R})
+    _ex(uid, "parent_aware_traversal", InteractionType.CODE_TRACING,
+        "This DFS records, for every vertex it enters, the vertex it was entered from. What does "
+        "it print?\n\n"
+        'graph = {"A": ["B", "D"], "B": ["A", "C"], "C": ["B", "D"], "D": ["A", "C"]}\n'
+        "parent = {}\n"
+        "visited = set()\n\n"
+        "def dfs(v, came_from):\n"
+        "    visited.add(v)\n"
+        "    parent[v] = came_from\n"
+        "    for nbr in graph[v]:\n"
+        "        if nbr not in visited:\n"
+        "            dfs(nbr, v)\n\n"
+        'dfs("A", None)\n'
+        'print(parent["B"], parent["C"], parent["D"])',
+        {"code": "", "expected_output": "A B C"},
+        d((3, 3, 3, 3)), ordering=1,
+        hints=[_h("socratic_question", "parent[v] is set the moment the traversal ENTERS v — who entered D, and from where?"),
+               _h("micro_question", "Does parent['C'] ever change after it is first set?"),
+               _h("light_hint", "A enters B; B enters C; C enters D."),
+               _h("targeted_explanation", "Each vertex records the vertex it was entered from: parent = {A: None, B: A, C: B, D: C} → printed 'A B C'. (The edge D—A exists, but D was entered from C, so A is NOT D's parent — that observation is the next exercise's cycle evidence.)")])
+    _ex(uid, "parent_aware_traversal", InteractionType.MCQ,
+        "That graph is the 4-cycle A—B—C—D—A, and DFS from A produced parent = {A: none, B: A, "
+        "C: B, D: C}. The recursion now stands at D and scans D's neighbors [A, C]. What does it "
+        "observe — and what should it conclude?",
+        *_mcq("", [("a", "A and C are both visited → two cycles exist"),
+                   ("b", "C is the parent — normal; A is visited but is NOT D's parent → genuine cycle evidence"),
+                   ("c", "Both neighbors are visited, so the traversal must stop with an error"),
+                   ("d", "Nothing — visited neighbors are always ignored")], "b",
+              "The parent edge (C) is the arrival edge seen from the other side — normal. A is visited but not D's parent: a second route already reached A — cycle evidence.", (3, 3, 4, 3)), ordering=2,
+        hints=[_h("socratic_question", "Which of A and C did the traversal pass as came_from when it entered D?"),
+               _h("micro_question", "How many routes from A to A does the edge D—A create that do not reuse an edge?"),
+               _h("light_hint", "Skip the parent; count every other visited neighbor as evidence."),
+               _h("targeted_explanation", "C is D's parent: the D—C edge read backwards — normal. A is visited and not D's parent: the walk A→B→C→D→A returns to its start without reusing an edge — a cycle. Exactly one cycle, found once.")])
+    _ex(uid, "parent_aware_traversal", InteractionType.FREE_FORM,
+        "A friend removed the parent check from your undirected DFS 'to keep it simple': the code "
+        "now reports a cycle the very first time any vertex sees a visited neighbor. On the plain "
+        "tree A—B—C, walk through what that code reports and explain why passing the parent into "
+        "the recursive call (and ignoring exactly that one neighbor) is the minimal fix.",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["b", "reports a cycle", "reports", "false alarm", "immediately", "already"],
+             "text": "On the tree the code already 'finds a cycle' at B (B sees A visited) — a false alarm."},
+            {"id": "p2", "keywords": ["both", "two", "both directions", "twice", "reverse", "other side", "same edge"],
+             "text": "Identifies the cause: the undirected edge is stored in both lists, so the arrival edge looks like a visited encounter."},
+            {"id": "p3", "keywords": ["parent", "came from", "came_from", "parameter", "pass", "skip", "ignore"],
+             "text": "The fix: thread the parent through the calls and skip exactly that one neighbor."},
+            {"id": "p4", "keywords": ["only", "one", "exactly", "other", "still", "rest"],
+             "text": "The skip is minimal: every OTHER visited neighbor still counts — no cycle evidence is lost."},
+         ], "min_points": 2},
+        d((3, 2, 4, 3)), requires_ai=True, ordering=3,
+        hints=[_h("socratic_question", "At B, which neighbor is already visited — and is that a cycle?"),
+               _h("micro_question", "If B skips the visited neighbor it came from, does any other visited neighbor remain at B?"),
+               _h("light_hint", "Pass came_from = v into each recursive call and ignore exactly the neighbor equal to it."),
+               _h("targeted_explanation", "On the tree: dfs('B','A') sees A visited and (without the check) reports a cycle — wrong, the tree has none. The arrival edge is stored both ways, so this meeting is guaranteed at every vertex. Passing the parent down and skipping exactly that neighbor silences the false alarm while every other visited neighbor still counts: minimal, and no evidence lost.")])
+
+    # --- Layer 3: undirected_cycle_detection ---
+    uid = _unit("undirected_cycle_detection", "Undirected cycle detection — practice",
+                "Implement DFS and BFS cycle detection; handle disconnected graphs and self-loops",
+                UnitType.PRACTICE, dims={E, R})
+    _ex(uid, "undirected_cycle_detection", InteractionType.CODE_TRACING,
+        "This is the complete detection: DFS with a parent check, plus the outer loop for "
+        "disconnected graphs. What does it print?\n\n"
+        "graph = [[1], [0], [3, 4], [2, 4], [2, 3], []]\n"
+        "visited = [False] * 6\n\n"
+        "def dfs(v, parent):\n"
+        "    visited[v] = True\n"
+        "    for nbr in graph[v]:\n"
+        "        if nbr == parent:\n"
+        "            continue\n"
+        "        if visited[nbr]:\n"
+        "            return True\n"
+        "        if dfs(nbr, v):\n"
+        "            return True\n"
+        "    return False\n\n"
+        "answer = False\n"
+        "for start in range(6):\n"
+        "    if not visited[start] and dfs(start, -1):\n"
+        "        answer = True\n"
+        'print("cycle" if answer else "no cycle")',
+        {"code": "", "expected_output": "cycle"},
+        d((3, 3, 4, 3)), ordering=1,
+        hints=[_h("socratic_question", "The outer loop starts a new dfs at every still-unvisited vertex — which starts actually run?"),
+               _h("micro_question", "Inside dfs(4, 3): neighbor 2 — is it visited, and is it 4's parent?"),
+               _h("light_hint", "Component {2,3,4} is the triangle 2-3-4-2; vertex 5 is isolated."),
+               _h("targeted_explanation", "start=0 covers the tree {0,1}: no cycle. start=2 dives 2→3→4; at 4 the neighbor 2 is visited and NOT the parent (3) → True. start=5 runs on an empty neighbor list → False. Any component finding a cycle decides the answer: 'cycle'.")])
+    _ex(uid, "undirected_cycle_detection", InteractionType.CODE_WRITING,
+        "Complete the detection below: fill in the three marked lines inside dfs so the function "
+        "returns True exactly when the undirected graph contains a cycle. The outer loop is "
+        "already written for you. Do not change anything else.",
+        {"function_name": "detect_cycle_completed",
+         "starter": ("def detect_cycle_completed(graph):\n"
+                     "    n = len(graph)\n"
+                     "    visited = [False] * n\n"
+                     "\n"
+                     "    def dfs(v, parent):\n"
+                     "        visited[v] = True\n"
+                     "        for nbr in graph[v]:\n"
+                     "            # line 1: ignore the edge you arrived on\n"
+                     "            # line 2: a visited neighbor that is not the parent proves a cycle\n"
+                     "            # line 3: otherwise dive into the unvisited neighbor\n"
+                     "            pass\n"
+                     "        return False\n"
+                     "\n"
+                     "    for start in range(n):\n"
+                     "        if not visited[start] and dfs(start, -1):\n"
+                     "            return True\n"
+                     "    return False\n"),
+         "tests": [{"graph": [[1], [0]], "expected": False},
+                   {"graph": [[1, 2], [0, 2], [0, 1]], "expected": True},
+                   {"graph": [[1], [0], [3, 4], [2, 4], [2, 3], []], "expected": True},
+                   {"graph": [[], [], []], "expected": False}],
+         "solution": ("def detect_cycle_completed(graph):\n"
+                      "    n = len(graph)\n"
+                      "    visited = [False] * n\n"
+                      "\n"
+                      "    def dfs(v, parent):\n"
+                      "        visited[v] = True\n"
+                      "        for nbr in graph[v]:\n"
+                      "            if nbr == parent:\n"
+                      "                continue\n"
+                      "            if visited[nbr]:\n"
+                      "                return True\n"
+                      "            if dfs(nbr, v):\n"
+                      "                return True\n"
+                      "        return False\n"
+                      "\n"
+                      "    for start in range(n):\n"
+                      "        if not visited[start] and dfs(start, -1):\n"
+                      "            return True\n"
+                      "    return False\n")},
+        d((3, 3, 4, 3)), language="python", ordering=2,
+        hints=[_h("socratic_question", "Which single neighbor must never count as cycle evidence — and how do you recognise it inside dfs?"),
+               _h("micro_question", "Order matters: what must you check BEFORE treating a visited neighbor as evidence?"),
+               _h("light_hint", "Line 1: skip nbr when it equals parent. Line 2: return True when visited[nbr]. Line 3: recurse with dfs(nbr, v) and pass its answer up."),
+               _h("targeted_explanation", "Inside the loop: if nbr == parent: continue — the arrival edge; if visited[nbr]: return True — a visited non-parent is the cycle; otherwise if dfs(nbr, v): return True — propagate whatever the deeper call found. The skeleton's outer loop covers disconnected graphs.")])
+    _ex(uid, "undirected_cycle_detection", InteractionType.CODE_WRITING,
+        "Write `has_cycle_undirected(graph)` for an UNDIRECTED graph given as an adjacency list "
+        "(every edge appears in both endpoint lists). Return True if the graph contains any cycle, "
+        "False otherwise. The graph may be disconnected and may contain isolated vertices; a "
+        "self-loop (a vertex listed in its own neighbors) counts as a cycle.",
+        {"function_name": "has_cycle_undirected",
+         "starter": "def has_cycle_undirected(graph):\n    # your code here\n",
+         "tests": [{"graph": [[1], [0]], "expected": False},
+                   {"graph": [[1, 2], [0, 2], [0, 1]], "expected": True},
+                   {"graph": [[1], [0, 2], [1], [4], [3], []], "expected": False},
+                   {"graph": [[1], [0], [3, 4], [2, 4], [2, 3], []], "expected": True},
+                   {"graph": [[], [], []], "expected": False},
+                   {"graph": [[0]], "expected": True},
+                   {"graph": [[1, 2, 3], [0], [0], [0]], "expected": False}],
+         "solution": ("def has_cycle_undirected(graph):\n"
+                      "    n = len(graph)\n"
+                      "    visited = [False] * n\n"
+                      "\n"
+                      "    def dfs(v, parent):\n"
+                      "        visited[v] = True\n"
+                      "        for nbr in graph[v]:\n"
+                      "            if nbr == parent:\n"
+                      "                continue\n"
+                      "            if visited[nbr]:\n"
+                      "                return True\n"
+                      "            if dfs(nbr, v):\n"
+                      "                return True\n"
+                      "        return False\n"
+                      "\n"
+                      "    for start in range(n):\n"
+                      "        if not visited[start]:\n"
+                      "            if dfs(start, -1):\n"
+                      "                return True\n"
+                      "    return False\n")},
+        d((4, 4, 4, 4)), language="python", ordering=3,
+        hints=[_h("socratic_question", "Your dfs from the completion already answers 'does THIS component have a cycle?' — what is missing for the whole graph?"),
+               _h("micro_question", "For the self-loop [[0]]: is the neighbor 0 visited when it is scanned, and is it the parent (-1)?"),
+               _h("light_hint", "dfs(v, parent) with visited marked on entry, parent skipped, visited non-parent → True; then an outer loop over all unvisited starts."),
+               _h("targeted_explanation", "Recursive dfs with the parent parameter: skip the parent, report a visited non-parent, recurse otherwise. Wrap it in the outer loop 'for start, if not visited, dfs(start, -1)' so every component is checked. The self-loop works with no extra code: the vertex is visited and not its own parent. Still O(V+E).")])
+    _ex(uid, "undirected_cycle_detection", InteractionType.CODE_WRITING,
+        "Translate the same invariant to BFS: the queue carries (vertex, parent) PAIRS, and while "
+        "scanning a dequeued vertex's neighbors you apply the identical test — skip the parent, "
+        "and a visited non-parent neighbor proves a cycle. Mark neighbors visited when ENQUEUING "
+        "them (the BFS convention), and remember the graph may be disconnected.",
+        {"function_name": "has_cycle_bfs",
+         "starter": "from collections import deque\n\ndef has_cycle_bfs(graph):\n    # your code here\n",
+         "tests": [{"graph": [[1], [0]], "expected": False},
+                   {"graph": [[1, 2], [0, 2], [0, 1]], "expected": True},
+                   {"graph": [[1], [0], [3, 4], [2, 4], [2, 3], []], "expected": True},
+                   {"graph": [[], [], []], "expected": False},
+                   {"graph": [[0]], "expected": True},
+                   {"graph": [[1, 2, 3], [0], [0], [0]], "expected": False}],
+         "solution": ("from collections import deque\n"
+                      "\n"
+                      "def has_cycle_bfs(graph):\n"
+                      "    n = len(graph)\n"
+                      "    visited = [False] * n\n"
+                      "    for start in range(n):\n"
+                      "        if visited[start]:\n"
+                      "            continue\n"
+                      "        visited[start] = True\n"
+                      "        queue = deque([(start, -1)])\n"
+                      "        while queue:\n"
+                      "            v, parent = queue.popleft()\n"
+                      "            for nbr in graph[v]:\n"
+                      "                if nbr == parent:\n"
+                      "                    continue\n"
+                      "                if visited[nbr]:\n"
+                      "                    return True\n"
+                      "                visited[nbr] = True\n"
+                      "                queue.append((nbr, v))\n"
+                      "    return False\n")},
+        d((4, 4, 4, 4)), language="python", ordering=4,
+        hints=[_h("socratic_question", "In the DFS version, where does each recursive call learn its parent from — and where does a BFS vertex learn it instead?"),
+               _h("micro_question", "Why must a neighbor be marked visited at enqueue time and not at dequeue time here?"),
+               _h("light_hint", "Seed the queue with (start, -1); on discovery enqueue (nbr, v); on scan, skip nbr == parent and report any other visited neighbor."),
+               _h("targeted_explanation", "BFS with (vertex, parent) queue entries: mark the start visited, enqueue (start, -1); per dequeued v, skip the parent, return True on any other visited neighbor, otherwise mark-and-enqueue (nbr, v). Enqueue-time marking keeps every vertex in the queue once — a dequeue-time mark could fake cycle evidence. Outer loop over unvisited starts; still O(V+E).")])
+    uid = _unit("undirected_cycle_detection", "Undirected cycle detection — apply",
+                "Recognize an undirected cycle-check situation in an unfamiliar context",
+                UnitType.APPLY, dims={T, R})
+    _ex(uid, "undirected_cycle_detection", InteractionType.FREE_FORM,
+        "A teammate hands you the office LAN map: 12 computers and a list of which pairs are "
+        "directly cabled. A cable is a physical link with no direction. The cabling contractor "
+        "promised 'no redundant links, ever', and she asks you to check the map for any redundant "
+        "loop. Which traversal do you use, what state do you carry during it, which single "
+        "observation flags a redundant loop, and what must you do about the possibility that the "
+        "LAN is split into separate sections?",
+        {"reference_points": [
+            {"id": "p1", "keywords": ["undirected", "both", "mutual", "two-way", "bidirectional", "no direction"],
+             "text": "Recognizes the graph as undirected — cables work both ways, so both endpoint lists hold the edge."},
+            {"id": "p2", "keywords": ["dfs", "bfs", "traversal", "parent", "came from", "came_from"],
+             "text": "Runs DFS (or BFS) while carrying the parent / where it came from."},
+            {"id": "p3", "keywords": ["visited", "not the parent", "non-parent", "not parent"],
+             "text": "A visited neighbor that is not the parent is the redundant-loop evidence."},
+            {"id": "p4", "keywords": ["outer", "loop", "every", "unvisited", "component", "section", "disconnected", "each"],
+             "text": "Loops over all unvisited computers — separate sections each need their own traversal."},
+         ], "min_points": 3},
+        d((4, 4, 4, 4)), requires_ai=True, ordering=5,
+        hints=[_h("socratic_question", "Is a cable one-way? What does that make the adjacency list look like — and which trap does that create for a plain visited check?"),
+               _h("micro_question", "When the scan meets the computer the traversal just came from, is that a loop?"),
+               _h("light_hint", "DFS with a parent parameter; a visited non-parent neighbor is the redundant loop; run it from every unvisited computer."),
+               _h("targeted_explanation", "Model computers as vertices, cables as undirected edges. Run DFS carrying (vertex, parent): skip the parent, and any OTHER visited neighbor proves a redundant loop. Because the LAN may be split into sections, wrap it in the outer loop over unvisited vertices — a loop in ANY section fails the check. Still O(V+E); BFS with (vertex, parent) entries works identically.")])
+
 
 def _build_variations():
     """A second, differently-angled exercise for every skill that would otherwise repeat
@@ -1780,6 +2192,30 @@ def _build_variations():
                        ("c", "The longer route — parents record the last discovery"),
                        ("d", "No route — equal distances cancel out")], "b",
                   "First discovery fixes the parent permanently: BFS returns one valid shortest path, and adjacency order decides which one.", (3, 3, 4, 4))),
+        # Layer 3 variations
+        "cycle_encounter_reasoning": (
+            "Tree A—B—C as an undirected adjacency list, DFS starting at A. When the walk reaches C, "
+            "C finds B already visited. Is this a cycle?",
+            _mcq("", [("a", "Yes — B is visited, so a cycle exists"),
+                       ("b", "No — B is C's parent: this is the arrival edge seen from the other side"),
+                       ("c", "Only if C has another neighbor besides B"),
+                       ("d", "DFS cannot be used on trees")], "b",
+                  "C was entered from B, so B in C's list is the same edge C—B stored in reverse — normal on every undirected graph, trees included.", (3, 2, 3, 2))),
+        "parent_aware_traversal": (
+            "What does the parent parameter add to plain recursive DFS on an undirected graph?",
+            _mcq("", [("a", "It makes DFS run faster"),
+                       ("b", "It identifies the arrival edge so the traversal can ignore it — and treat every OTHER visited neighbor as cycle evidence"),
+                       ("c", "It replaces the visited set entirely"),
+                       ("d", "It sorts the neighbors into visit order")], "b",
+                  "The parent names the edge the traversal arrived on; skipping exactly that one neighbor turns raw visited-encounters into meaningful cycle evidence.", (3, 3, 4, 3))),
+        "undirected_cycle_detection": (
+            "Vertex 5 is isolated (empty neighbor list) in a graph where DFS-with-parent already "
+            "found no cycle in the components it covered. What does the outer loop conclude about 5?",
+            _mcq("", [("a", "A cycle exists at 5"),
+                       ("b", "5 must be skipped — isolated vertices crash DFS"),
+                       ("c", "5 is its own component and trivially cycle-free: dfs(5, -1) just returns False"),
+                       ("d", "The graph must be re-modeled before it can be checked")], "c",
+                  "An isolated vertex is a one-vertex component with no edges, hence no cycle; the outer loop visits it, dfs returns False immediately.", (3, 3, 4, 3))),
     }
     for skill_id, (prompt, (payload, difficulty)) in VARIATIONS.items():
         teach = [u for u in UNITS if u.skill_id == skill_id and u.unit_type == UnitType.TEACH]
@@ -1806,7 +2242,8 @@ def _apply_amendments():
         "Module F - Integration & Application": ["bfs_vs_dfs", "recognizing_traversal",
             "traversal_application", "v0_readiness",
             "traversal_boundary", "component_discovery", "component_enumeration",
-            "bfs_distance", "path_reconstruction"],
+            "bfs_distance", "path_reconstruction",
+            "cycle_encounter_reasoning", "parent_aware_traversal", "undirected_cycle_detection"],
     }
     descriptions = {
         "graph_definition": "Understand a graph as a model of entities and relationships.",
@@ -1854,6 +2291,10 @@ def _apply_amendments():
         # Layer 2 descriptions
         "bfs_distance": "Read BFS levels as distances, track a distance array, and treat -1 as unreachable.",
         "path_reconstruction": "Track parents during BFS and reconstruct the actual shortest path between two vertices.",
+        # Layer 3 descriptions
+        "cycle_encounter_reasoning": "Interpret what traversal observes when it meets a visited neighbor in an undirected graph.",
+        "parent_aware_traversal": "Distinguish the parent edge from genuine cycle evidence while traversing an undirected graph.",
+        "undirected_cycle_detection": "Implement undirected cycle detection with DFS and BFS, handle disconnected graphs, and recognize the situation independently.",
     }
     evidence = {
         "degree": {EvidenceType.RECOGNITION, EvidenceType.CONSTRUCTION},
@@ -1888,6 +2329,11 @@ def _apply_amendments():
         # Layer 2 evidence requirements
         "bfs_distance": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.IMPLEMENTATION},
         "path_reconstruction": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.IMPLEMENTATION},
+        # Layer 3 evidence requirements
+        "cycle_encounter_reasoning": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.EXPLANATION},
+        "parent_aware_traversal": {EvidenceType.RECOGNITION, EvidenceType.TRACE, EvidenceType.EXPLANATION},
+        "undirected_cycle_detection": {EvidenceType.RECOGNITION, EvidenceType.TRACE,
+                                       EvidenceType.IMPLEMENTATION, EvidenceType.APPLICATION},
     }
     module_order = list(modules.keys())
     skill_order = {sid: i for i, m in enumerate(module_order) for sid in modules[m]}
@@ -1914,6 +2360,7 @@ def _apply_amendments():
         ("v0_readiness", InteractionType.CODE_WRITING): ActivityRole.APPLICATION,
         ("component_enumeration", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
         ("path_reconstruction", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
+        ("undirected_cycle_detection", InteractionType.FREE_FORM): ActivityRole.APPLICATION,
     }
     problem_keys = {("bfs_implementation", InteractionType.CODE_WRITING),
                     ("dfs_implementation", InteractionType.CODE_WRITING),
@@ -1921,7 +2368,8 @@ def _apply_amendments():
                     ("v0_readiness", InteractionType.CODE_WRITING),
                     ("component_enumeration", InteractionType.CODE_WRITING),
                     ("bfs_distance", InteractionType.CODE_WRITING),
-                    ("path_reconstruction", InteractionType.CODE_WRITING)}
+                    ("path_reconstruction", InteractionType.CODE_WRITING),
+                    ("undirected_cycle_detection", InteractionType.CODE_WRITING)}
     capabilities = {
         ("bfs_implementation", InteractionType.CODE_WRITING): {EvidenceType.TRACE, EvidenceType.RECOGNITION},
         ("dfs_implementation", InteractionType.CODE_WRITING): {EvidenceType.TRACE, EvidenceType.RECOGNITION},
@@ -1932,6 +2380,9 @@ def _apply_amendments():
         # closure); TRACE by each skill's own tracing activities
         ("bfs_distance", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
         ("path_reconstruction", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
+        # IMPLEMENTATION via dfs_implementation's code-writing (prerequisite closure);
+        # TRACE by this skill's own tracing activities
+        ("undirected_cycle_detection", InteractionType.CODE_WRITING): {EvidenceType.IMPLEMENTATION, EvidenceType.TRACE},
     }
     for e in EXERCISES:
         role = role_by_type[e.interaction_type]

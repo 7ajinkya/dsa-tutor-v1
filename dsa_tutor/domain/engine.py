@@ -321,18 +321,20 @@ class LearningEngine:
         if not pool:
             return None
         state = snapshot.state
-        pool.sort(key=lambda e: (state.total_attempts_for(e.id), e.ordering, e.id))
+        # The difficulty shift is a PREFERENCE, not a filter: it reorders equal-attempt
+        # alternatives but must never permanently exclude an activity type. A hard filter
+        # would starve the micro activities that a skill's required evidence types
+        # (e.g. recognition/trace) depend on, making mastery unreachable.
         if state.difficultylevel_shift < 0:
-            simple = [e for e in pool if e.interaction_type in
-                      {InteractionType.MCQ, InteractionType.OUTPUT_PREDICTION}]
-            if simple:
-                return simple[0]
-        if state.difficultylevel_shift > 0:
-            harder = [e for e in pool if e.interaction_type in
-                      {InteractionType.CODE_WRITING, InteractionType.FREE_FORM,
-                       InteractionType.COMPLEXITY_QUESTION}]
-            if harder:
-                return harder[0]
+            preferred = {InteractionType.MCQ, InteractionType.OUTPUT_PREDICTION}
+        elif state.difficultylevel_shift > 0:
+            preferred = {InteractionType.CODE_WRITING, InteractionType.FREE_FORM,
+                         InteractionType.COMPLEXITY_QUESTION}
+        else:
+            preferred = set()
+        pool.sort(key=lambda e: (state.total_attempts_for(e.id),
+                                 0 if e.interaction_type in preferred else 1,
+                                 e.ordering, e.id))
         return pool[0]
 
     def _has_harder_variant(self, exercise: Exercise) -> bool:

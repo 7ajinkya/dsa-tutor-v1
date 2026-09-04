@@ -50,6 +50,10 @@ EXAMPLES = {
     # Layer 2 examples
     "bfs_distance": "graph = [[1,2],[3],[3,4],[5],[5],[]], BFS from 0. Waves: {0} → {1,2} → {3,4} → {5}. The distance array records exactly the wave numbers: distance = [0,1,1,2,2,3]. Run the same BFS on [[1],[0,2],[1],[4],[3],[]] from 0 and vertices 3,4,5 keep -1: unreachable, because their component is never discovered.",
     "path_reconstruction": "The same BFS from 0 also records who discovered whom: parent = [-1,0,0,1,2,3]. For the route to 5, walk backward: 5 ← 3 ← 1 ← 0, then reverse → [0,1,3,5]. One BFS produced both the distance (3 edges) and the actual path — O(V+E) plus at most O(V) for the walk.",
+    # Layer 3 examples
+    "cycle_encounter_reasoning": "Tree A—B—C as undirected adjacency: A:[B], B:[A,C], C:[B]. DFS from A: at B, neighbor A is visited — the arrival edge seen from the other side; at C, neighbor B is visited — again the parent. The tree produces a visited-neighbor meeting at every vertex, yet has no cycle. Add one edge C—A and the SAME walk now also meets a visited neighbor that is NOT the parent: the loop, found.",
+    "parent_aware_traversal": "4-cycle A—B—C—D—A, DFS from A: dfs(A, none) → dfs(B, A) → dfs(C, B) → dfs(D, C). At D the neighbors are A and C: C is the parent — the arrival edge D—C read backwards; A is visited and NOT the parent — a second route to A exists: cycle evidence. The parent parameter is the only extra state needed.",
+    "undirected_cycle_detection": "graph = [[1],[0],[3,4],[2,4],[2,3],[]] — a tree {0,1}, the triangle {2,3,4}, and isolated 5. Outer loop: dfs(0,-1) → False; dfs(2,-1) walks 2→3→4 and at 4 meets visited 2 (not the parent) → True. The BFS version enqueues (vertex, parent) pairs and applies the same test: also True. Self-loop [[0]]: the vertex meets itself — visited, not the parent → True.",
 }
 
 PITFALLS = {
@@ -98,4 +102,8 @@ PITFALLS = {
     # Layer 2 pitfalls
     "bfs_distance": "Shortest means fewest EDGES, not fewest vertices — and the guarantee holds only for unweighted graphs. Also, visited and distance are NOT the same information: -1 just happens to double as 'not discovered' in our distance-array convention.",
     "path_reconstruction": "Parents are set at FIRST discovery and never overwritten — chasing overwrites is impossible, but expecting BFS to return ALL shortest paths is the classic trap: it returns one valid path, chosen by adjacency order. And don't forget to reverse: the backward walk produces the path in reverse.",
+    # Layer 3 pitfalls
+    "cycle_encounter_reasoning": "A visited neighbor is NOT automatically a cycle: on an undirected graph even a tree shows a visited neighbor at every vertex — the parent. Read the observation only together with 'is this the vertex I arrived from?'",
+    "parent_aware_traversal": "The parent check is per CALL — the parent of the current vertex only. A vertex visited by an earlier branch is not your parent even though it is adjacent, and that encounter is exactly the evidence you must not skip. Skipping is also surgical: the parent edge once per endpoint, every other edge never.",
+    "undirected_cycle_detection": "Three classic traps: (1) one traversal from vertex 0 says nothing about other components — use the outer loop; (2) in the BFS variant, marking at dequeue instead of enqueue can put a vertex in the queue twice and fake cycle evidence; (3) the parent must travel per recursive call (per queue entry) — one global 'previous vertex' collapses as soon as a vertex branches.",
 }
