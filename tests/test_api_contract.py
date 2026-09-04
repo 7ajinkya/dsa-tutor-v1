@@ -187,7 +187,13 @@ def test_answer_stale_activity_with_new_key(api):
     assert r.status_code == 409
     err = r.json()["error"]
     assert err["code"] == "STALE_ACTIVITY"
-    assert err["turn"]["activity"]["id"] != stale_id
+    turn = err["turn"]
+    if turn["activity"] is not None:
+        assert turn["activity"]["id"] != stale_id
+    else:
+        # a correct answer can complete a skill: the authoritative turn is then the next
+        # skill's study text — equally no longer the stale activity
+        assert turn["type"] == "theory"
 
 
 def test_answer_wrong_triggers_engine_remediation(api):

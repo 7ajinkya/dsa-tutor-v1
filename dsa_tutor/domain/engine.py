@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import timedelta
 
 from .curriculum import Curriculum
-from .mastery import derive_state, is_state_at_least, MasteryState
+from .mastery import PROFICIENT_RECENCY_DAYS, derive_state, is_state_at_least, MasteryState
 from .models import (
     EngineAction, EngineDecision, EvidenceOutcome, EvidenceRecord, Exercise,
     InteractionType, LearnerState, MasteryDimension, Pace, SkillAssessment,
@@ -173,6 +173,12 @@ class LearningEngine:
 
         if is_correct:
             state.exercise_failures[ex_id] = 0
+            if state.difficultylevel_shift < 0:
+                # a success ends the reduced-difficulty period; keeping the -1 preference
+                # forever would lock the learner out of the non-MCQ activities that the
+                # remaining evidence requirements need
+                state.difficultylevel_shift = 0
+                why.append("success after intervention -> reduced-difficulty preference ends")
             excellent = score >= EXCELLENT_SCORE and hints_used == 0 and not solution_revealed
             why.append(f"correct attempt (score {score:.2f}, hints {hints_used}, "
                        f"independent={str(hints_used == 0 and not solution_revealed).lower()})")
@@ -236,8 +242,13 @@ class LearningEngine:
                     state.difficultylevel_shift = -1
                     why.append("intervention: no meaningful progress -> reduce difficulty "
                                "and serve a smaller reasoning step")
-                    return EngineDecision(EngineAction.REDUCE_DIFFICULTY, skill_id=skill_id,
-                                          unit_id=exercise.unit_id, exercise_id=ex_id, why=why)
+                    # a smaller step must actually be a different, simpler activity —
+                    # re-serving the identical exercise would trap the learner
+                    smaller = self._alternative_exercise(snapshot, exercise)
+                    return EngineDecision(
+                        EngineAction.REDUCE_DIFFICULTY, skill_id=skill_id,
+                        unit_id=smaller.unit_id if smaller else exercise.unit_id,
+                        exercise_id=smaller.id if smaller else ex_id, why=why)
                 why.append("intervention: cool down this activity for now -> serve a "
                            "smaller variation; the original may return later in the session")
                 return self._variation_or_repeat(snapshot, exercise, why)
@@ -263,7 +274,12 @@ class LearningEngine:
         from .models import ActivityScope, EvidenceOutcome
         if exercise.scope is not ActivityScope.PROBLEM or not exercise.required_capabilities:
             return True, ""
-        records = snapshot.evidence.get(exercise.skill_id, [])
+        # capabilities may be demonstrated anywhere in the skill's foundation: the skill
+        # itself or its prerequisite closure (its own non-problem activities cannot
+        # always evidence every required capability, e.g. IMPLEMENTATION or TRACE)
+        records = list(snapshot.evidence.get(exercise.skill_id, []))
+        for pid in self.curriculum.prerequisite_closure(exercise.skill_id):
+            records.extend(snapshot.evidence.get(pid, []))
         now = utcnow()
         missing = []
         for cap in exercise.required_capabilities:

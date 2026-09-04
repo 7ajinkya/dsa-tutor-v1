@@ -22,8 +22,10 @@ def run_cli(args, input_text, env_extra=None):
 
 
 def test_cli_e2e_offline_session_start_answer_stop():
+    # inputs: acknowledge study text, answer its check, acknowledge the next skill's
+    # study text (the engine advances into it after a correct answer), answer, stop
     result = run_cli(["start", "--offline", "--pace", "normal"],
-                     "\na\na\nstop\n")
+                     "\na\n\na\nstop\n")
     out = result.stdout
     assert "SESSION PLAN" in out, "session plan must be shown at start"
     assert "STUDY:" in out, "theory/study section must be rendered"

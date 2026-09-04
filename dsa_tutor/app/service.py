@@ -136,7 +136,9 @@ class TutorService:
                                               unit_id=state.current_unit_id,
                                               exercise_id=exercise.id,
                                               why=["resumed from persisted stopping point"])
-                    return self._exercise_view(decision, exercise, generated, state, plan)
+                    # route through the standard presentation gate: a pause taken on a
+                    # theory turn must resume with the theory, not skip straight to the check
+                    return self._present_from_decision(decision, state, plan)
             return self._present_from_decision(self.engine.select_next(self._snapshot(state)), state, plan)
 
         self.session = TutoringSession(
@@ -186,10 +188,7 @@ class TutorService:
         state.current_exercise_id = exercise.id
         state.pending_action = decision.action.value
         unit = self.curriculum.units.get(exercise.unit_id)
-        if exercise.interaction_type == InteractionType.THEORY or (
-                unit is not None and unit.theory and not self._unit_theory_seen(state, unit.id)
-                and unit.unit_type.value == "teach" and exercise.ordering <= 1):
-            state.pending_action = decision.action.value
+        if exercise.interaction_type == InteractionType.THEORY or self._theory_pending(state, exercise):
             self.storage.save_state(state)
             self.storage.append_event(self._event(EventType.THEORY_VIEWED,
                                                   {"unit": unit.id if unit else None}))
@@ -202,6 +201,14 @@ class TutorService:
     @staticmethod
     def _unit_theory_seen(state: LearnerState, unit_id: str) -> bool:
         return f"theory:{unit_id}" in state.completed_unit_ids
+
+    def _theory_pending(self, state: LearnerState, exercise: Exercise) -> bool:
+        """A teach unit's study text is pending when its first check was selected but the
+        learner has not acknowledged the theory yet (single gate for every presentation path)."""
+        unit = self.curriculum.units.get(exercise.unit_id)
+        return bool(
+            unit is not None and unit.theory and not self._unit_theory_seen(state, unit.id)
+            and unit.unit_type.value == "teach" and exercise.ordering <= 1)
 
     def _exercise_view(self, decision: EngineDecision, exercise: Exercise, generated: bool,
                        state: LearnerState, plan: DailyPlan, unit=None) -> TurnView:
@@ -415,7 +422,9 @@ class TutorService:
         state.current_exercise_id = next_exercise.id
         state.pending_action = decision.action.value
         self.storage.record_interaction(attempt, records, assessment, state, events)
-        view = self._exercise_view(decision, next_exercise, next_generated, state, plan)
+        # present through the standard gate so a mid-session advance into a new skill's
+        # teach unit shows the study text before its first check (same as session start)
+        view = self._present_from_decision(decision, state, plan)
         view.evaluation = evaluation
         view.extra["ai_degraded"] = ai_degraded
         return view
@@ -479,6 +488,9 @@ class TutorService:
                 difficulty=generated.difficulty, source="ai",
                 prompt_version=generated.prompt_version, requires_ai=False)
             self.storage.ensure_exercise(ex)
+            # keep the decision truthful about what will actually be presented
+            decision.exercise_id = ex.id
+            decision.unit_id = ex.unit_id
             return ex, True, getattr(self.ai, "last_fallback_reason", None)
         if decision.exercise_id:
             exercise, generated = self._resolve_exercise(decision.exercise_id)
@@ -490,6 +502,8 @@ class TutorService:
                 alternative = self.engine._alternative_exercise(self._snapshot(state), exercise)
                 if alternative is not None and alternative.id != exercise.id:
                     decision.why.append(message)
+                    decision.exercise_id = alternative.id
+                    decision.unit_id = alternative.unit_id
                     return alternative, False, getattr(self.ai, "last_fallback_reason", None)
                 decision.why.append(message)
                 return exercise, generated, getattr(self.ai, "last_fallback_reason", None)
@@ -498,6 +512,9 @@ class TutorService:
         if fresh.exercise_id:
             exercise, generated = self._resolve_exercise(fresh.exercise_id)
             if exercise is not None:
+                decision.skill_id = fresh.skill_id or exercise.skill_id
+                decision.unit_id = fresh.unit_id or exercise.unit_id
+                decision.exercise_id = exercise.id
                 return exercise, generated, getattr(self.ai, "last_fallback_reason", None)
         return None, False, None
 
@@ -661,6 +678,15 @@ class TutorService:
             return TurnView(kind="info", extra={"message": "No active session."})
         self.session = session  # in-memory context attach only; nothing persisted
         plan = self.storage.daily_plan(self.learner.id, date.today())  # read-only: never creates
+        # pending theory outranks re-presenting the exercise: the check is still current,
+        # but the study text must come first (same precedence as start/resume presentation)
+        unit = self.curriculum.units.get(state.current_unit_id) if state.current_unit_id else None
+        if unit is not None and unit.theory and not self._unit_theory_seen(state, unit.id):
+            decision = EngineDecision(EngineAction.ADVANCE, skill_id=state.current_skill_id,
+                                      unit_id=unit.id,
+                                      why=["authoritative current turn (read-only snapshot): theory pending"])
+            return TurnView(kind="theory", decision=decision, unit=unit,
+                            remaining_minutes=self._remaining_minutes(), daily=plan)
         if state.current_exercise_id:
             exercise, generated = self._resolve_exercise(state.current_exercise_id)
             if exercise is not None:
@@ -679,13 +705,6 @@ class TutorService:
                                           why=["authoritative current turn (read-only snapshot)"]
                                               + ([note] if note else []))
                 return self._snapshot_exercise_view(decision, exercise, generated, session, plan)
-        unit = self.curriculum.units.get(state.current_unit_id) if state.current_unit_id else None
-        if unit is not None and unit.theory and not self._unit_theory_seen(state, unit.id):
-            decision = EngineDecision(EngineAction.ADVANCE, skill_id=state.current_skill_id,
-                                      unit_id=unit.id,
-                                      why=["authoritative current turn (read-only snapshot): theory pending"])
-            return TurnView(kind="theory", decision=decision, unit=unit,
-                            remaining_minutes=self._remaining_minutes(), daily=plan)
         decision = self.engine.select_next(self._snapshot(state))
         if decision.action == EngineAction.END_SESSION or not decision.exercise_id:
             return TurnView(kind="ended", decision=decision,

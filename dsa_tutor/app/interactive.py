@@ -184,7 +184,7 @@ def _run_loop(service, pace: Pace, resume: bool) -> None:
             print(f"unexpected turn kind: {view.kind}")
             return
 
-        if view.kind == "exercise" and view.evaluation is not None:
+        if view.evaluation is not None:
             ev = view.evaluation
             mark = "correct" if ev.correct else "incorrect"
             print(f"\n[{mark} · score {ev.score:.2f}"
