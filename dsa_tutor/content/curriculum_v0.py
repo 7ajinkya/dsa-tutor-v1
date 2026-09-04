@@ -2204,7 +2204,7 @@ def _build_practice():
         hints=[_h("socratic_question", "A is 0 — what does the edge A—B force B to be?"),
                _h("micro_question", "Follow the square edge by edge: B follows from A, C from B, D from C — and then the closing edge D—A must also disagree."),
                _h("light_hint", "Alternate: 0, 1, 0, 1 around the square."),
-               _h("targeted_explanation", "A=0 forces B=1 (edge A—B), B=1 forces C=0, C=0 forces D=1, and the closing edge D—A joins 1 with 0: satisfied. The square is two-colorable.")])
+               _h("targeted_explanation", "A=0 forces B=1 (edge A—B), B=1 forces C=0, C=0 forces D=1, and the closing edge D—A joins 1 with 0: satisfied. The square is two-colorable. Watch the wording: 'bipartite' never means the graph has exactly two VERTICES — it means the vertices (however many) split into two sets with every edge crossing between them.")])
     _ex(uid, "two_color_constraint", InteractionType.FREE_FORM,
         "A teacher wants to split a class into two rooms so that every 'these two distract each "
         "other' pair ends up in different rooms. Explain what the vertices, edges and two colors "
@@ -2373,7 +2373,7 @@ def _build_practice():
         hints=[_h("socratic_question", "Component {0,1} is a single edge — what verdict does bfs(0) return? What does component {2,3,4} contain?"),
                _h("micro_question", "Inside bfs(2): vertices 3 and 4 both get color 1 — is there an edge between them?"),
                _h("light_hint", "The triangle {2,3,4} is where the conflict lives."),
-               _h("targeted_explanation", "bfs(0) colors the single edge cleanly → True. bfs(2) colors 2 with 0, neighbors 3 and 4 with 1 — and the edge 3—4 joins two 1s → False. The outer loop catches it: 'not bipartite'. One conflicting component decides the whole graph.")])
+               _h("targeted_explanation", "bfs(0) colors the single edge cleanly → True. bfs(2) colors 2 with 0, neighbors 3 and 4 with 1 — and the edge 3—4 joins two 1s → False. The outer loop catches it: 'not bipartite'. One conflicting component decides the whole graph. And note the count: this graph has THREE components — the 'two' in bipartite names the two color groups, never the number of components; a graph with any number of components is bipartite as long as each one colors cleanly.")])
     _ex(uid, "bipartite_graph", InteractionType.MCQ,
         "A colleague says: 'Every cycle makes a graph non-bipartite.' Which example settles it?",
         *_mcq("", [("a", "A square A—B—C—D—A is a cycle and 2-colors cleanly (0,1,0,1) — only ODD cycles break bipartiteness"),
